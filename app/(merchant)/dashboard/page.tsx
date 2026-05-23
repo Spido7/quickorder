@@ -1,43 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
 import type { MenuItem, Order } from "@/lib/types";
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const MOCK_ITEMS: MenuItem[] = [
-  { id: "1", cafe_id: "mock", name: "Masala Chai", price: 30, is_available: true },
-  { id: "2", cafe_id: "mock", name: "Vada Pav", price: 25, is_available: true },
-  { id: "3", cafe_id: "mock", name: "Samosa (2 pcs)", price: 20, is_available: false },
-  { id: "4", cafe_id: "mock", name: "Paneer Sandwich", price: 60, is_available: true },
-  { id: "5", cafe_id: "mock", name: "Cold Coffee", price: 80, is_available: true },
-  { id: "6", cafe_id: "mock", name: "Aloo Paratha", price: 70, is_available: false },
-];
-
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "ord-1", cafe_id: "mock", table_number: "4", total_amount: 135,
-    order_status: "pending", created_at: new Date(Date.now() - 120000).toISOString(),
-    cart_items: [
-      { id: "1", name: "Masala Chai", price: 30, quantity: 2 },
-      { id: "4", name: "Paneer Sandwich", price: 60, quantity: 1 },
-      { id: "2", name: "Vada Pav", price: 25, quantity: 1 },
-    ],
-  },
-  {
-    id: "ord-2", cafe_id: "mock", table_number: "2", total_amount: 80,
-    order_status: "preparing", created_at: new Date(Date.now() - 600000).toISOString(),
-    cart_items: [{ id: "5", name: "Cold Coffee", price: 80, quantity: 1 }],
-  },
-  {
-    id: "ord-3", cafe_id: "mock", table_number: null, total_amount: 45,
-    order_status: "done", created_at: new Date(Date.now() - 1800000).toISOString(),
-    cart_items: [
-      { id: "2", name: "Vada Pav", price: 25, quantity: 1 },
-      { id: "1", name: "Masala Chai", price: 30, quantity: 1 },
-    ],
-  },
-];
 
 // ─── Audio hook ───────────────────────────────────────────────────────────────
 // Browsers block autoplay until the user interacts with the page.
@@ -273,8 +239,8 @@ function TabBar({ active, onChange, pendingCount }: {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const [tab, setTab] = useState<Tab>("orders");
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(MOCK_ITEMS);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [cafeId, setCafeId] = useState<string | null>(null);
 
@@ -288,18 +254,28 @@ export default function DashboardPage() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      setCafeId(user.id);
+      
+      const { data: cafe } = await supabase
+        .from("cafes")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+        
+      if (!cafe) return;
+      
+      const currentCafeId = cafe.id;
+      setCafeId(currentCafeId);
 
       setLoadingMenu(true);
       const { data: items } = await supabase
-        .from("menu_items").select("*").eq("cafe_id", user.id).order("name");
-      if (items && items.length > 0) setMenuItems(items);
+        .from("menu_items").select("*").eq("cafe_id", currentCafeId).order("name");
+      if (items) setMenuItems(items);
       setLoadingMenu(false);
 
       const { data: ordersData } = await supabase
-        .from("orders").select("*").eq("cafe_id", user.id)
+        .from("orders").select("*").eq("cafe_id", currentCafeId)
         .order("created_at", { ascending: false }).limit(30);
-      if (ordersData && ordersData.length > 0) setOrders(ordersData as Order[]);
+      if (ordersData) setOrders(ordersData as Order[]);
     }
     init();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -451,6 +427,29 @@ export default function DashboardPage() {
       <main className="flex-1 overflow-y-auto pb-6">
         {tab === "orders" && (
           <div className="px-4 space-y-3">
+
+            {/* QR Code Section */}
+            {cafeId && (
+              <div className="bg-white/5 rounded-2xl border border-white/10 p-4 mb-2 flex items-center justify-between gap-4 print:bg-white print:border-black print:p-0">
+                <div>
+                  <h3 className="text-white font-bold text-base leading-tight print:text-black">Your Table QR Code</h3>
+                  <p className="text-white/50 text-xs mt-1 print:text-black/70">Scan to view the menu and order.</p>
+                  <button
+                    onClick={() => window.print()}
+                    className="mt-3 px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/20 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 print:hidden"
+                  >
+                    <span>🖨️</span> Print QR
+                  </button>
+                </div>
+                <div className="bg-white p-2 rounded-xl shrink-0">
+                  <QRCode 
+                    value={`https://quickorder-saas.pages.dev/${cafeId}`} 
+                    size={80}
+                    level="H"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Incoming yellow tickets section */}
             {incomingOrders.length > 0 && (
