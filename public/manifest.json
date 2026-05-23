@@ -1,0 +1,38 @@
+{
+  "name": "QuickOrder POS",
+  "short_name": "QuickOrder",
+  "description": "Instant QR menus & live orders for your restaurant. Zero commission.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#ffffff",
+  "background_color": "#0d0d0f",
+  "categories": ["food", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Orders",
+      "url": "/dashboard",
+      "description": "View and manage incoming orders"
+    },
+    {
+      "name": "Menu Items",
+      "url": "/dashboard?tab=menu",
+      "description": "Toggle item availability"
+    }
+  ]
+}
