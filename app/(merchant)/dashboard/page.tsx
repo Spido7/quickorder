@@ -245,7 +245,7 @@ export default function DashboardPage() {
   const [cafeId, setCafeId] = useState<string | null>(null);
 
   // Stable client ref — avoids re-creating on every render
-  const supabase = useRef(createClient()).current;
+  const [supabase] = useState(() => createClient());
 
   const { unlocked, unlock, play } = useAudioAlert("/bell.mp3");
 
