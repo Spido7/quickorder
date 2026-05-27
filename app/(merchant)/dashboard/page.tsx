@@ -18,17 +18,33 @@ function useAudioAlert(src: string) {
   }, [src]);
 
   // Called once when merchant taps "Enable Alerts"
+  // Must be invoked directly inside a user-gesture handler so both
+  // Notification.requestPermission() and Audio autoplay are allowed by the browser.
   const unlock = useCallback(() => {
+    // 1. Request native notification permission
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    // 2. Silent play/pause on a fresh Audio object to unlock the browser's
+    //    autoplay policy (works even if the main audioRef hasn't loaded yet)
+    const audio = new Audio('/bell.mp3');
+    audio.play().catch(() => {});
+    audio.pause();
+
+    // 3. Also unlock the persistent ref used for real bell rings
     const a = audioRef.current;
-    if (!a) return;
-    // Play at zero volume to unblock the audio context, then immediately pause
-    a.volume = 0;
-    a.play().then(() => {
-      a.pause();
-      a.currentTime = 0;
-      a.volume = 1;
-      setUnlocked(true);
-    }).catch(() => setUnlocked(false));
+    if (a) {
+      a.volume = 0;
+      a.play().then(() => {
+        a.pause();
+        a.currentTime = 0;
+        a.volume = 1;
+      }).catch(() => {});
+    }
+
+    // 4. Hide the banner — runs regardless of whether the user grants permission
+    setUnlocked(true);
   }, []);
 
   const play = useCallback(() => {
@@ -254,15 +270,15 @@ export default function DashboardPage() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      
+
       const { data: cafe } = await supabase
         .from("cafes")
         .select("id")
         .eq("user_id", user.id)
         .single();
-        
+
       if (!cafe) return;
-      
+
       const currentCafeId = cafe.id;
       setCafeId(currentCafeId);
 
@@ -278,7 +294,7 @@ export default function DashboardPage() {
       if (ordersData) setOrders(ordersData as Order[]);
     }
     init();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Supabase Realtime subscription ─────────────────────────────────────────
@@ -442,8 +458,8 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="bg-white p-2 rounded-xl shrink-0">
-                  <QRCode 
-                    value={`https://quickorder-saas.pages.dev/${cafeId}`} 
+                  <QRCode
+                    value={`https://quickorder-saas.pages.dev/${cafeId}`}
                     size={80}
                     level="H"
                   />
