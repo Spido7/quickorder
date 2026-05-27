@@ -181,7 +181,7 @@ function CheckoutSheet({
       // 2. Build UPI deep link and redirect
       const upiLink =
         `upi://pay` +
-        `?pa=${encodeURIComponent(cafe.upi_id)}` +
+        `?pa=${encodeURIComponent(cafe.upi_id).replace(/%40/g, "@")}` +
         `&pn=${encodeURIComponent(cafe.business_name)}` +
         `&am=${total.toFixed(2)}` +
         `&cu=INR` +
@@ -236,7 +236,7 @@ function CheckoutSheet({
                 <button
                   onClick={() => {
                     const link =
-                      `upi://pay?pa=${encodeURIComponent(cafe.upi_id)}` +
+                      `upi://pay?pa=${encodeURIComponent(cafe.upi_id).replace(/%40/g, "@")}` +
                       `&pn=${encodeURIComponent(cafe.business_name)}` +
                       `&am=${total.toFixed(2)}&cu=INR`;
                     window.location.href = link;

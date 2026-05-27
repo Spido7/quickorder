@@ -546,7 +546,7 @@ export default function DashboardPage() {
                 </div>
                 <div id="qr-container" className="bg-white p-2 rounded-xl shrink-0">
                   <QRCode
-                    value={`https://quickorder-saas.pages.dev/${cafeId}`}
+                    value={`https://quickorder.pages.dev/${cafeId}`}
                     size={80}
                     level="H"
                   />
