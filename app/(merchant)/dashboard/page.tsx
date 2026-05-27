@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
 import type { MenuItem, Order } from "@/lib/types";
@@ -254,30 +255,100 @@ function TabBar({ active, onChange, pendingCount }: {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("orders");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [cafeId, setCafeId] = useState<string | null>(null);
 
+  // Modal states for adding menu items
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState("General");
+  const [addError, setAddError] = useState<string | null>(null);
+  const [addingItem, setAddingItem] = useState(false);
+
   // Stable client ref — avoids re-creating on every render
   const [supabase] = useState(() => createClient());
 
   const { unlocked, unlock, play } = useAudioAlert("/bell.mp3");
 
+  const downloadQRCode = () => {
+    const svgElement = document.querySelector("#qr-container svg");
+    if (!svgElement) return;
+    const svgString = new XMLSerializer().serializeToString(svgElement);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = svgUrl;
+    downloadLink.download = `table-qr-${cafeId || "cafe"}.svg`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(svgUrl);
+  };
+
+  const handleAddMenuItemSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newItemName.trim() || !newItemPrice.trim()) return;
+    setAddingItem(true);
+    setAddError(null);
+
+    try {
+      const priceVal = parseFloat(newItemPrice);
+      if (isNaN(priceVal) || priceVal <= 0) {
+        throw new Error("Price must be a positive number");
+      }
+
+      const { data, error } = await supabase
+        .from("menu_items")
+        .insert({
+          cafe_id: cafeId,
+          name: newItemName.trim(),
+          price: priceVal,
+          category: newItemCategory.trim() || "General",
+          is_available: true,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setMenuItems((prev) => [...prev, data as MenuItem].sort((a, b) => a.name.localeCompare(b.name)));
+        setIsAddModalOpen(false);
+        setNewItemName("");
+        setNewItemPrice("");
+        setNewItemCategory("General");
+      }
+    } catch (err: any) {
+      setAddError(err.message || "Failed to add menu item");
+    } finally {
+      setAddingItem(false);
+    }
+  };
+
   // ── Initial data fetch ──────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
       const { data: cafe } = await supabase
         .from("cafes")
         .select("id")
-        .eq("user_id", user.id)
+        .eq("id", user.id)
         .single();
 
-      if (!cafe) return;
+      if (!cafe) {
+        router.push("/setup");
+        return;
+      }
 
       const currentCafeId = cafe.id;
       setCafeId(currentCafeId);
@@ -373,6 +444,14 @@ export default function DashboardPage() {
   const cookingOrders = orders.filter((o) => o.order_status === "preparing");
   const doneOrders = orders.filter((o) => o.order_status === "done");
 
+  if (!cafeId) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-[#0d0d0f]">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh flex flex-col bg-[#0d0d0f] max-w-md mx-auto">
 
@@ -450,14 +529,22 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="text-white font-bold text-base leading-tight print:text-black">Your Table QR Code</h3>
                   <p className="text-white/50 text-xs mt-1 print:text-black/70">Scan to view the menu and order.</p>
-                  <button
-                    onClick={() => window.print()}
-                    className="mt-3 px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/20 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 print:hidden"
-                  >
-                    <span>🖨️</span> Print QR
-                  </button>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => window.print()}
+                      className="px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/20 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 print:hidden"
+                    >
+                      <span>🖨️</span> Print QR
+                    </button>
+                    <button
+                      onClick={downloadQRCode}
+                      className="px-3 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/20 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 print:hidden"
+                    >
+                      <span>📥</span> Download QR
+                    </button>
+                  </div>
                 </div>
-                <div className="bg-white p-2 rounded-xl shrink-0">
+                <div id="qr-container" className="bg-white p-2 rounded-xl shrink-0">
                   <QRCode
                     value={`https://quickorder-saas.pages.dev/${cafeId}`}
                     size={80}
@@ -540,7 +627,10 @@ export default function DashboardPage() {
             <div className="fixed bottom-6 right-6 pointer-events-none max-w-md mx-auto w-full"
               style={{ left: "50%", transform: "translateX(-50%)", width: "calc(min(448px, 100vw) - 48px)", maxWidth: 400 }}>
               <div className="flex justify-end pointer-events-auto">
-                <button className="w-14 h-14 rounded-2xl bg-orange-500 text-white shadow-xl shadow-orange-500/30 flex items-center justify-center text-2xl hover:brightness-110 active:scale-95 transition-all">
+                <button 
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="w-14 h-14 rounded-2xl bg-orange-500 text-white shadow-xl shadow-orange-500/30 flex items-center justify-center text-2xl hover:brightness-110 active:scale-95 transition-all"
+                >
                   +
                 </button>
               </div>
@@ -548,6 +638,90 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Add Menu Item Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#16161a] border border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-bold text-lg">Add Menu Item</h3>
+              <button 
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-white/40 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {addError && (
+              <div className="mb-4 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+                {addError}
+              </div>
+            )}
+
+            <form onSubmit={handleAddMenuItemSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-white/50 mb-1.5">Item Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  placeholder="e.g. Cold Coffee"
+                  className="w-full min-h-11 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-white/50 mb-1.5">Price (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0.01"
+                    step="0.01"
+                    value={newItemPrice}
+                    onChange={(e) => setNewItemPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full min-h-11 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all text-sm"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-semibold text-white/50 mb-1.5">Category</label>
+                  <input
+                    type="text"
+                    value={newItemCategory}
+                    onChange={(e) => setNewItemCategory(e.target.value)}
+                    placeholder="General"
+                    className="w-full min-h-11 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 min-h-11 rounded-xl border border-white/10 text-white/60 font-medium text-sm hover:bg-white/5 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingItem}
+                  className="flex-1 min-h-11 rounded-xl bg-orange-500 text-white font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {addingItem ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Add Item"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
