@@ -322,7 +322,7 @@ export default function SetupPage() {
         {step === 3 && (
           <div className="space-y-4">
             <InputField label="Restaurant / Cafe name" value={state.businessName} onChange={(v) => setState((s) => ({ ...s, businessName: v }))} placeholder="e.g. Chai Corner" hint="Appears on the customer menu page." />
-            <InputField label="UPI ID" value={state.upiId} onChange={(v) => setState((s) => ({ ...s, upiId: v }))} placeholder="e.g. yourcafe@upi" hint="Customers pay directly to this ID." />
+            <InputField label="UPI ID" value={state.upiId} onChange={(v) => setState((s) => ({ ...s, upiId: v }))} placeholder="e.g. yourcafe@upi" hint="Customers pay directly to this ID. Use a Merchant/Business UPI ID to ensure amounts pre-fill automatically for customers." />
             {error && <div className="p-3 border-2 border-black bg-danger/10 text-danger text-sm font-bold">⚠️ {error}</div>}
           </div>
         )}

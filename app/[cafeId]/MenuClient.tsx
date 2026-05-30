@@ -462,6 +462,9 @@ function CheckoutSheet({
               <p className="text-center text-gray-500 text-[10px] font-bold uppercase tracking-wider mt-3">
                 Opens GPay, PhonePe, Paytm or any UPI app
               </p>
+              <div className="mt-4 p-2.5 border border-black/20 bg-warning/10 text-black/75 text-[10px] font-bold leading-normal uppercase tracking-wide rounded-none text-center">
+                💡 Note: If the amount is not pre-filled in your UPI app, please type <span className="text-accent font-black">₹{total}</span> manually. UPI restricts auto-filling for personal accounts.
+              </div>
             </>
           )}
         </div>
