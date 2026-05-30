@@ -283,7 +283,7 @@ function CheckoutSheet({
         `upi://pay` +
         `?pa=${encodeURIComponent(cafe.upi_id)}` +
         `&pn=${encodeURIComponent(cafe.business_name)}` +
-        `&tr=${encodeURIComponent(newOrder.id)}` +
+        `&tr=${encodeURIComponent(newOrder.id.replace(/-/g, ""))}` +
         `&mc=5812` +
         `&am=${total.toFixed(2)}` +
         `&cu=INR` +
@@ -367,7 +367,7 @@ function CheckoutSheet({
                     const link =
                       `upi://pay?pa=${encodeURIComponent(cafe.upi_id)}` +
                       `&pn=${encodeURIComponent(cafe.business_name)}` +
-                      `&tr=${encodeURIComponent(placedOrder.id)}` +
+                      `&tr=${encodeURIComponent(placedOrder.id.replace(/-/g, ""))}` +
                       `&mc=5812` +
                       `&am=${total.toFixed(2)}&cu=INR` +
                       `&tn=${encodeURIComponent("Order from " + (cafe.has_seating ? stationName : identifier.trim()))}`;
