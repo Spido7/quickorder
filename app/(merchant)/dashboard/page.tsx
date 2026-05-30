@@ -445,11 +445,11 @@ export default function DashboardPage() {
     await supabase.from("orders").update({ order_status: updated }).eq("id", id);
   }
 
-  function handleStatusChange(id: string, status: Order["order_status"]) {
+  async function handleStatusChange(id: string, status: Order["order_status"]) {
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, order_status: status } : o))
     );
-    supabase.from("orders").update({ order_status: status }).eq("id", id);
+    await supabase.from("orders").update({ order_status: status }).eq("id", id);
   }
 
   // ── Derived state ────────────────────────────────────────────────────────────
@@ -674,7 +674,7 @@ export default function DashboardPage() {
                   Completed
                 </p>
                 <div className="space-y-3">
-                  {doneOrders.map((order) => (
+                  {doneOrders.slice(0, 5).map((order) => (
                     <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
                   ))}
                 </div>
