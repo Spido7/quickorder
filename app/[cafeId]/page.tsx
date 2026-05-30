@@ -35,10 +35,13 @@ export async function generateMetadata({
 // ─── Server Component: fetch data, hand off to client ────────────────────────
 export default async function MenuPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ cafeId: string }>;
+  searchParams: Promise<{ table?: string }>;
 }) {
   const { cafeId } = await params;
+  const { table } = await searchParams;
   const supabase = await createClient();
 
   // Parallel fetch — cafe info + available menu items
@@ -61,5 +64,5 @@ export default async function MenuPage({
 
   if (cafeError || !cafe) notFound();
 
-  return <MenuClient cafe={cafe} items={items ?? []} />;
+  return <MenuClient cafe={cafe} items={items ?? []} initialTable={table} />;
 }

@@ -66,9 +66,9 @@ function ToggleSwitch({ checked, onChange, disabled }: {
     <button
       role="switch" aria-checked={checked} disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-orange-500 disabled:opacity-50 ${checked ? "bg-green-500 border-green-500" : "bg-white/10 border-white/10"}`}
+      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center border-2 border-black transition-colors duration-150 rounded-none ${checked ? "bg-success" : "bg-white"}`}
     >
-      <span className={`inline-block h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-200 ${checked ? "translate-x-6" : "translate-x-0.5"}`} />
+      <span className={`inline-block h-5 w-5 bg-white border-2 border-black transition-transform duration-150 ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
     </button>
   );
 }
@@ -82,13 +82,13 @@ function MenuItemRow({ item, onToggle }: {
     setBusy(true); await onToggle(item.id, val); setBusy(false);
   }
   return (
-    <div className="flex items-center gap-4 px-4 py-4 min-h-[72px] border-b border-white/5 last:border-0 transition-colors">
+    <div className="flex items-center gap-4 px-4 py-4 min-h-[72px] border-b-2 border-black bg-white last:border-b-0 text-black">
       <div className="flex-1 min-w-0">
-        <p className={`font-medium text-base leading-tight truncate ${item.is_available ? "text-white" : "text-white/40 line-through"}`}>{item.name}</p>
-        <p className="text-orange-400 font-semibold text-sm mt-0.5">₹{item.price}</p>
+        <p className={`font-black text-base uppercase tracking-tight truncate ${item.is_available ? "text-black" : "text-black/40 line-through"}`}>{item.name}</p>
+        <p className="text-accent font-black text-sm mt-0.5">₹{item.price}</p>
       </div>
       <div className="flex items-center gap-3 shrink-0">
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ${item.is_available ? "bg-green-500/15 text-green-400" : "bg-white/5 text-white/30"}`}>
+        <span className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 border border-black shadow-[1px_1px_0px_0px_#000] ${item.is_available ? "bg-success/20 text-success" : "bg-zinc-100 text-zinc-455"}`}>
           {item.is_available ? "Live" : "Off"}
         </span>
         <ToggleSwitch checked={item.is_available} onChange={handleToggle} disabled={busy} />
@@ -98,7 +98,6 @@ function MenuItemRow({ item, onToggle }: {
 }
 
 // ─── Incoming Order Ticket (Yellow) ──────────────────────────────────────────
-// Visually distinct from regular order cards — designed to demand attention.
 function IncomingTicket({ order, onAccept }: {
   order: Order;
   onAccept: (id: string) => Promise<void>;
@@ -112,70 +111,64 @@ function IncomingTicket({ order, onAccept }: {
   }
 
   return (
-    <div className="relative rounded-2xl overflow-hidden animate-[ticket-in_0.35s_ease-out]">
-      {/* Pulsing yellow border glow */}
-      <div className="absolute inset-0 rounded-2xl ring-2 ring-yellow-400/60 animate-pulse pointer-events-none" />
-
-      {/* Card body */}
-      <div className="bg-yellow-400/10 border-2 border-yellow-400/50 rounded-2xl p-4">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-lg">🔔</span>
-              <span className="font-bold text-yellow-300 text-lg leading-tight">
-                {order.table_number ? `Table ${order.table_number}` : "Takeaway"}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-yellow-400/20 text-yellow-300 border border-yellow-400/30">
-                New
-              </span>
-            </div>
-            <p className="text-yellow-400/60 text-xs">Just arrived</p>
+    <div className="relative border-3 border-black bg-warning/20 p-4 shadow-[6px_6px_0px_0px_#000] text-black rounded-none">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-lg">🔔</span>
+            <span className="font-display font-black text-black text-lg leading-tight uppercase tracking-tight">
+              {order.table_number === "0" ? "Counter" : order.table_number ? `Table ${order.table_number}` : "Takeaway"}
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-warning text-black border border-black shadow-[1px_1px_0px_0px_#000]">
+              New
+            </span>
           </div>
-          <p className="font-bold text-yellow-300 text-2xl shrink-0">₹{order.total_amount}</p>
+          <p className="text-black/60 text-xs font-bold uppercase tracking-wider">Just arrived</p>
         </div>
-
-        {/* Divider */}
-        <div className="border-t border-yellow-400/20 my-3" />
-
-        {/* Cart items */}
-        <div className="space-y-2 mb-4">
-          {order.cart_items.map((item) => (
-            <div key={item.id} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-md bg-yellow-400/20 text-yellow-300 text-xs font-bold flex items-center justify-center shrink-0">
-                  {item.quantity}×
-                </span>
-                <span className="text-yellow-100 text-sm font-medium">{item.name}</span>
-              </div>
-              <span className="text-yellow-400/70 text-sm">₹{item.price * item.quantity}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Accept button — large green, impossible to miss */}
-        <button
-          onClick={handleAccept}
-          disabled={busy}
-          className="w-full min-h-14 rounded-xl bg-green-500 text-white font-bold text-base shadow-lg shadow-green-500/30 hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {busy ? (
-            <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Accepting…</>
-          ) : (
-            <>✅ Accept &amp; Cook</>
-          )}
-        </button>
+        <p className="font-display font-black text-black text-2xl shrink-0">₹{order.total_amount}</p>
       </div>
+
+      {/* Divider */}
+      <div className="border-t-2 border-black my-3" />
+
+      {/* Cart items */}
+      <div className="space-y-2 mb-4">
+        {order.cart_items.map((item) => (
+          <div key={item.id} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 border border-black bg-warning text-black text-xs font-black flex items-center justify-center shrink-0 shadow-[1px_1px_0px_0px_#000]">
+                {item.quantity}×
+              </span>
+              <span className="text-black text-sm font-bold">{item.name}</span>
+            </div>
+            <span className="text-black/70 text-sm font-bold">₹{item.price * item.quantity}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Accept button */}
+      <button
+        onClick={handleAccept}
+        disabled={busy}
+        className="w-full min-h-14 bg-success text-white font-display font-black uppercase tracking-tight text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+      >
+        {busy ? (
+          <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Accepting…</>
+        ) : (
+          <>✅ Accept &amp; Cook</>
+        )}
+      </button>
     </div>
   );
 }
 
 // ─── Regular Order Card (Preparing / Done) ────────────────────────────────────
 const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-  preparing: "bg-blue-500/15 text-blue-400 border-blue-500/20",
-  done: "bg-green-500/15 text-green-400 border-green-500/20",
-  cancelled: "bg-red-500/15 text-red-400 border-red-500/20",
+  pending: "bg-warning/20 text-black border-black",
+  preparing: "bg-accent-dim/20 text-accent-dim border-black",
+  done: "bg-success/20 text-success border-black",
+  cancelled: "bg-danger/20 text-danger border-black",
 };
 const STATUS_LABELS: Record<string, string> = {
   pending: "🔔 New", preparing: "🍳 Preparing", done: "✅ Done", cancelled: "✗ Cancelled",
@@ -194,33 +187,33 @@ function OrderCard({ order, onStatusChange }: {
   const nextStatus: Record<string, Order["order_status"]> = { preparing: "done" };
 
   return (
-    <div className="rounded-2xl border bg-white/3 border-white/8 p-4">
+    <div className="border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_#000] text-black rounded-none">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-white text-base">
-              {order.table_number ? `Table ${order.table_number}` : "Takeaway"}
+            <span className="font-black text-black text-base uppercase tracking-tight">
+              {order.table_number === "0" ? "Counter" : order.table_number ? `Table ${order.table_number}` : "Takeaway"}
             </span>
-            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STATUS_STYLES[order.order_status]}`}>
+            <span className={`text-xs px-2 py-0.5 border border-black font-black shadow-[1px_1px_0px_0px_#000] ${STATUS_STYLES[order.order_status]}`}>
               {STATUS_LABELS[order.order_status]}
             </span>
           </div>
-          <p className="text-white/40 text-xs mt-0.5">{timeAgo()}</p>
+          <p className="text-black/60 text-xs font-bold mt-0.5">{timeAgo()}</p>
         </div>
-        <p className="font-bold text-orange-400 text-lg shrink-0">₹{order.total_amount}</p>
+        <p className="font-display font-black text-accent text-lg shrink-0">₹{order.total_amount}</p>
       </div>
       <div className="space-y-1 mb-4">
         {order.cart_items.map((item) => (
-          <div key={item.id} className="flex justify-between text-sm">
-            <span className="text-white/70">{item.name}</span>
-            <span className="text-white/40">×{item.quantity}</span>
+          <div key={item.id} className="flex justify-between text-sm font-bold">
+            <span className="text-black/80">{item.name}</span>
+            <span className="text-black/40">×{item.quantity}</span>
           </div>
         ))}
       </div>
       {nextStatus[order.order_status] && (
         <button
           onClick={() => onStatusChange(order.id, nextStatus[order.order_status])}
-          className="w-full min-h-11 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/20 font-semibold text-sm hover:bg-blue-500/30 active:scale-[0.98] transition-all"
+          className="w-full min-h-11 bg-accent-dim text-white border-2 border-black font-display font-black uppercase text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer"
         >
           Mark as Done ✓
         </button>
@@ -236,14 +229,16 @@ function TabBar({ active, onChange, pendingCount }: {
   active: Tab; onChange: (t: Tab) => void; pendingCount: number;
 }) {
   return (
-    <div className="flex bg-white/5 rounded-2xl p-1 mx-4 mb-4">
+    <div className="no-print flex border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] rounded-none overflow-hidden mx-4 mb-4 p-0">
       {(["orders", "menu"] as Tab[]).map((t) => (
         <button key={t} onClick={() => onChange(t)}
-          className={`flex-1 min-h-11 rounded-xl text-sm font-semibold transition-all relative ${active === t ? "bg-[#1e1e24] text-white shadow-sm" : "text-white/40 hover:text-white/60"}`}
+          className={`flex-1 min-h-11 font-display font-black uppercase text-sm border-r-2 border-black last:border-r-0 rounded-none relative transition-colors cursor-pointer ${
+            active === t ? "bg-warning text-black font-black" : "bg-white text-black/60 hover:bg-zinc-50"
+          }`}
         >
           {t === "orders" ? "Live Orders" : "Menu Items"}
           {t === "orders" && pendingCount > 0 && (
-            <span className="absolute top-1.5 right-2 w-5 h-5 bg-orange-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-bounce">
+            <span className="absolute top-1.5 right-2 w-5 h-5 bg-accent text-white text-xs border border-black rounded-full flex items-center justify-center font-black animate-bounce shadow-[1px_1px_0px_0px_#000]">
               {pendingCount}
             </span>
           )}
@@ -261,6 +256,16 @@ export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [cafeId, setCafeId] = useState<string | null>(null);
+  const [cafeDetails, setCafeDetails] = useState<{
+    id: string;
+    business_name: string;
+    has_seating: boolean;
+    table_count: number | null;
+  } | null>(null);
+  const [selectedTable, setSelectedTable] = useState<string>("0");
+  const [printMode, setPrintMode] = useState<"single" | "all">("single");
+  const [origin, setOrigin] = useState("");
+  const [isQrExpanded, setIsQrExpanded] = useState(false);
 
   // Modal states for adding menu items
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -275,6 +280,13 @@ export default function DashboardPage() {
 
   const { unlocked, unlock, play } = useAudioAlert("/bell.mp3");
 
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
   const downloadQRCode = () => {
     const svgElement = document.querySelector("#qr-container svg");
     if (!svgElement) return;
@@ -283,7 +295,7 @@ export default function DashboardPage() {
     const svgUrl = URL.createObjectURL(svgBlob);
     const downloadLink = document.createElement("a");
     downloadLink.href = svgUrl;
-    downloadLink.download = `table-qr-${cafeId || "cafe"}.svg`;
+    downloadLink.download = `table-${selectedTable}-${cafeId || "cafe"}.svg`;
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
@@ -341,7 +353,7 @@ export default function DashboardPage() {
 
       const { data: cafe } = await supabase
         .from("cafes")
-        .select("id")
+        .select("id, business_name, has_seating, table_count")
         .eq("id", user.id)
         .single();
 
@@ -352,6 +364,7 @@ export default function DashboardPage() {
 
       const currentCafeId = cafe.id;
       setCafeId(currentCafeId);
+      setCafeDetails(cafe);
 
       setLoadingMenu(true);
       const { data: items } = await supabase
@@ -446,42 +459,42 @@ export default function DashboardPage() {
 
   if (!cafeId) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-[#0d0d0f]">
-        <div className="w-8 h-8 border-2 border-white/20 border-t-orange-500 rounded-full animate-spin" />
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-background">
+        <div className="w-8 h-8 border-2 border-black border-t-accent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh flex flex-col bg-[#0d0d0f] max-w-md mx-auto">
+    <div className="min-h-dvh flex flex-col bg-background max-w-md mx-auto text-black">
 
       {/* ── Audio unlock banner ── */}
       {!unlocked && (
         <button
           onClick={unlock}
-          className="w-full bg-yellow-400/10 border-b border-yellow-400/25 px-4 py-3 flex items-center gap-3 text-left transition-colors hover:bg-yellow-400/15 active:bg-yellow-400/20"
+          className="no-print w-full bg-warning/20 border-b-2 border-black px-4 py-3 flex items-center gap-3 text-left transition-colors hover:bg-warning/35 cursor-pointer"
         >
           <span className="text-xl shrink-0">🔔</span>
           <div className="flex-1 min-w-0">
-            <p className="text-yellow-300 text-sm font-semibold leading-tight">Enable order alerts</p>
-            <p className="text-yellow-400/60 text-xs mt-0.5">Tap to hear a bell when new orders arrive</p>
+            <p className="text-black text-sm font-black uppercase tracking-tight leading-tight">Enable order alerts</p>
+            <p className="text-black/60 text-xs mt-0.5 font-bold">Tap to hear a bell when new orders arrive</p>
           </div>
-          <span className="text-yellow-400/60 text-xs font-medium shrink-0 border border-yellow-400/30 px-2 py-1 rounded-lg">
+          <span className="text-black text-xs font-black uppercase shrink-0 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000]">
             Tap
           </span>
         </button>
       )}
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-10 bg-[#0d0d0f]/90 backdrop-blur-sm border-b border-white/5">
+      <header className="no-print sticky top-0 z-10 bg-white border-b-2 border-black">
         <div className="flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center">
-              <span className="text-white text-sm font-bold">Q</span>
+            <div className="w-8 h-8 bg-black flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#ff6b35]">
+              <span className="text-white text-sm font-black">Q</span>
             </div>
             <div>
-              <p className="font-bold text-white text-sm leading-tight">Dashboard</p>
-              <p className="text-white/40 text-xs">
+              <p className="font-display font-black text-black text-sm leading-tight uppercase tracking-tight">Dashboard</p>
+              <p className="text-black/60 text-xs font-bold uppercase">
                 {incomingOrders.length > 0
                   ? `${incomingOrders.length} order${incomingOrders.length > 1 ? "s" : ""} waiting`
                   : unlocked ? "Listening for orders 👂" : "All caught up 👍"}
@@ -490,28 +503,28 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             {incomingOrders.length > 0 && (
-              <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full animate-ping" />
+              <div className="w-2.5 h-2.5 bg-warning border border-black rounded-full animate-ping" />
             )}
             {unlocked && (
-              <div className="w-2 h-2 bg-green-500 rounded-full" title="Alerts active" />
+              <div className="w-2 h-2 bg-success border border-black rounded-full" title="Alerts active" />
             )}
           </div>
         </div>
       </header>
 
       {/* ── Stats strip ── */}
-      <div className="flex gap-3 px-4 py-3">
-        <div className="flex-1 bg-yellow-400/10 rounded-xl p-3 border border-yellow-400/20">
-          <p className="text-yellow-400/70 text-xs">Incoming</p>
-          <p className="text-yellow-300 font-bold text-xl">{incomingOrders.length}</p>
+      <div className="no-print flex gap-3 px-4 py-3">
+        <div className="flex-1 bg-white border-2 border-black rounded-none p-3 shadow-[3px_3px_0px_0px_#000]">
+          <p className="text-black/60 text-xs font-black uppercase">Incoming</p>
+          <p className="text-black font-display font-black text-xl">{incomingOrders.length}</p>
         </div>
-        <div className="flex-1 bg-blue-500/10 rounded-xl p-3 border border-blue-500/20">
-          <p className="text-blue-400/70 text-xs">Cooking</p>
-          <p className="text-blue-300 font-bold text-xl">{cookingOrders.length}</p>
+        <div className="flex-1 bg-white border-2 border-black rounded-none p-3 shadow-[3px_3px_0px_0px_#000]">
+          <p className="text-black/60 text-xs font-black uppercase">Cooking</p>
+          <p className="text-black font-display font-black text-xl">{cookingOrders.length}</p>
         </div>
-        <div className="flex-1 bg-white/5 rounded-xl p-3 border border-white/5">
-          <p className="text-white/40 text-xs">Done today</p>
-          <p className="text-white font-bold text-xl">{doneOrders.length}</p>
+        <div className="flex-1 bg-white border-2 border-black rounded-none p-3 shadow-[3px_3px_0px_0px_#000]">
+          <p className="text-black/60 text-xs font-black uppercase">Done today</p>
+          <p className="text-black font-display font-black text-xl">{doneOrders.length}</p>
         </div>
       </div>
 
@@ -519,45 +532,108 @@ export default function DashboardPage() {
       <TabBar active={tab} onChange={setTab} pendingCount={incomingOrders.length} />
 
       {/* ── Content ── */}
-      <main className="flex-1 overflow-y-auto pb-6">
+      <main className="no-print flex-1 overflow-y-auto pb-6">
         {tab === "orders" && (
           <div className="px-4 space-y-3">
 
             {/* QR Code Section */}
             {cafeId && (
-              <div className="bg-white/5 rounded-2xl border border-white/10 p-4 mb-2 flex items-center justify-between gap-4 print:bg-white print:border-black print:p-0">
-                <div>
-                  <h3 className="text-white font-bold text-base leading-tight print:text-black">Your Table QR Code</h3>
-                  <p className="text-white/50 text-xs mt-1 print:text-black/70">Scan to view the menu and order.</p>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => window.print()}
-                      className="px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/20 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 print:hidden"
-                    >
-                      <span>🖨️</span> Print QR
-                    </button>
-                    <button
-                      onClick={downloadQRCode}
-                      className="px-3 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/20 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 print:hidden"
-                    >
-                      <span>📥</span> Download QR
-                    </button>
+              <div className="bg-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_#000] mb-2 no-print overflow-hidden">
+                {/* Accordion Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setIsQrExpanded(!isQrExpanded)}
+                  className="w-full flex items-center justify-between p-4 bg-white hover:bg-zinc-50 transition-colors text-left focus:outline-none cursor-pointer"
+                >
+                  <div>
+                    <h3 className="text-black font-display font-black text-sm sm:text-base uppercase tracking-tight leading-none">
+                      🖨️ QR Code Generator
+                    </h3>
+                    <p className="text-black/60 text-[10px] sm:text-xs mt-1.5 font-bold uppercase tracking-wider">
+                      {isQrExpanded ? "Click to collapse" : "Click to expand & generate table-specific QR codes"}
+                    </p>
                   </div>
-                </div>
-                <div id="qr-container" className="bg-white p-2 rounded-xl shrink-0">
-                  <QRCode
-                    value={`https://quickorder.pages.dev/${cafeId}`}
-                    size={80}
-                    level="H"
-                  />
-                </div>
+                  <span className="text-black font-black text-xs border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000] ml-2 select-none">
+                    {isQrExpanded ? "COLLAPSE ▲" : "EXPAND ▼"}
+                  </span>
+                </button>
+
+                {/* Collapsible Content */}
+                {isQrExpanded && (
+                  <div className="border-t-2 border-black p-4 bg-[#fdfbf7] space-y-4 animate-in slide-in-from-top-2 duration-200">
+                    {/* Selector */}
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1">Select Station</label>
+                      <select
+                        value={selectedTable}
+                        onChange={(e) => setSelectedTable(e.target.value)}
+                        className="w-full h-11 px-2.5 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm cursor-pointer"
+                      >
+                        <option value="0">Counter (Table 0)</option>
+                        {cafeDetails?.has_seating && cafeDetails.table_count &&
+                          Array.from({ length: cafeDetails.table_count }, (_, i) => (
+                            <option key={i + 1} value={String(i + 1)}>Table {i + 1}</option>
+                          ))
+                        }
+                      </select>
+                    </div>
+
+                    {/* QR Display */}
+                    <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-black/35 bg-white space-y-4">
+                      <div id="qr-container" className="bg-white p-2.5 border-2 border-black rounded-none shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                        <QRCode
+                          value={`${origin || "https://quickorder.pages.dev"}/${cafeId}?table=${selectedTable}`}
+                          size={120}
+                          level="H"
+                        />
+                      </div>
+                      
+                      <div className="text-center w-full space-y-3">
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-black bg-warning/20 border border-black/30 px-3 py-1 inline-block">
+                            🎯 Active: {selectedTable === "0" ? "Counter / Table 0" : `Table ${selectedTable}`}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-col gap-2 w-full pt-1">
+                          <button
+                            onClick={() => {
+                              setPrintMode("single");
+                              setTimeout(() => window.print(), 100);
+                            }}
+                            className="w-full py-2.5 bg-white border-2 border-black text-black hover:bg-zinc-50 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            🖨️ Print Selected
+                          </button>
+                          {cafeDetails?.has_seating && (cafeDetails.table_count ?? 0) > 0 && (
+                            <button
+                              onClick={() => {
+                                setPrintMode("all");
+                                setTimeout(() => window.print(), 100);
+                              }}
+                              className="w-full py-2.5 bg-warning text-black border-2 border-black hover:bg-warning/90 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              🖨️ Print All ({ (cafeDetails.table_count ?? 0) + 1 } QRs)
+                            </button>
+                          )}
+                          <button
+                            onClick={downloadQRCode}
+                            className="w-full py-2.5 bg-white border-2 border-black text-black hover:bg-zinc-50 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            📥 Download SVG
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Incoming yellow tickets section */}
             {incomingOrders.length > 0 && (
               <div className="space-y-3">
-                <p className="text-yellow-300/70 text-xs font-semibold uppercase tracking-widest px-1 pt-1">
+                <p className="text-black font-black text-xs uppercase tracking-widest px-1 pt-1">
                   🔔 Incoming Orders
                 </p>
                 {incomingOrders.map((order) => (
@@ -570,7 +646,7 @@ export default function DashboardPage() {
             {cookingOrders.length > 0 && (
               <div className="space-y-3">
                 {incomingOrders.length > 0 && (
-                  <p className="text-blue-400/70 text-xs font-semibold uppercase tracking-widest px-1 pt-2">
+                  <p className="text-black font-black text-xs uppercase tracking-widest px-1 pt-2">
                     🍳 In the Kitchen
                   </p>
                 )}
@@ -582,10 +658,10 @@ export default function DashboardPage() {
 
             {/* Empty state */}
             {incomingOrders.length === 0 && cookingOrders.length === 0 && (
-              <div className="py-16 text-center">
+              <div className="py-16 text-center border-2 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_#000]">
                 <span className="text-5xl">🎉</span>
-                <p className="text-white font-semibold mt-4">No active orders</p>
-                <p className="text-white/40 text-sm mt-1">
+                <p className="text-black font-black uppercase tracking-tight mt-4">No active orders</p>
+                <p className="text-black/60 text-sm font-bold mt-1">
                   New orders will appear here instantly.
                 </p>
               </div>
@@ -594,10 +670,10 @@ export default function DashboardPage() {
             {/* Completed section */}
             {doneOrders.length > 0 && (
               <div className="pt-2">
-                <p className="text-white/25 text-xs font-semibold uppercase tracking-widest mb-3 px-1">
+                <p className="text-black/65 font-black text-xs uppercase tracking-widest mb-3 px-1">
                   Completed
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {doneOrders.map((order) => (
                     <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
                   ))}
@@ -611,15 +687,15 @@ export default function DashboardPage() {
           <div className="px-4">
             {loadingMenu && (
               <div className="py-8 flex justify-center">
-                <span className="w-6 h-6 border-2 border-white/20 border-t-orange-500 rounded-full animate-spin" />
+                <span className="w-6 h-6 border-2 border-black border-t-accent rounded-full animate-spin" />
               </div>
             )}
-            <div className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="bg-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_#000] overflow-hidden">
               {menuItems.map((item) => (
                 <MenuItemRow key={item.id} item={item} onToggle={handleToggleItem} />
               ))}
             </div>
-            <p className="text-white/25 text-xs text-center mt-4">
+            <p className="text-black/60 text-xs font-bold uppercase tracking-wider text-center mt-4">
               {menuItems.filter((i) => i.is_available).length} of {menuItems.length} items live
             </p>
 
@@ -629,7 +705,7 @@ export default function DashboardPage() {
               <div className="flex justify-end pointer-events-auto">
                 <button 
                   onClick={() => setIsAddModalOpen(true)}
-                  className="w-14 h-14 rounded-2xl bg-orange-500 text-white shadow-xl shadow-orange-500/30 flex items-center justify-center text-2xl hover:brightness-110 active:scale-95 transition-all"
+                  className="w-14 h-14 bg-accent text-white border-2 border-black shadow-[4px_4px_0px_0px_#000] flex items-center justify-center text-3xl font-black hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer rounded-none"
                 >
                   +
                 </button>
@@ -642,39 +718,39 @@ export default function DashboardPage() {
       {/* Add Menu Item Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#16161a] border border-white/10 rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-bold text-lg">Add Menu Item</h3>
+          <div className="w-full max-w-sm bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
+              <h3 className="text-black font-display font-black text-lg uppercase tracking-tight">Add Menu Item</h3>
               <button 
                 onClick={() => setIsAddModalOpen(false)}
-                className="text-white/40 hover:text-white transition-colors"
+                className="text-black/60 hover:text-black font-black text-base cursor-pointer"
               >
                 ✕
               </button>
             </div>
             
             {addError && (
-              <div className="mb-4 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
-                {addError}
+              <div className="mb-4 p-2.5 border-2 border-black bg-danger/10 text-danger text-xs font-bold">
+                ⚠️ {addError}
               </div>
             )}
 
             <form onSubmit={handleAddMenuItemSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-white/50 mb-1.5">Item Name</label>
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Item Name</label>
                 <input
                   type="text"
                   required
                   value={newItemName}
                   onChange={(e) => setNewItemName(e.target.value)}
                   placeholder="e.g. Cold Coffee"
-                  className="w-full min-h-11 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all text-sm"
+                  className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm placeholder:text-gray-400"
                 />
               </div>
 
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs font-semibold text-white/50 mb-1.5">Price (₹)</label>
+                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Price (₹)</label>
                   <input
                     type="number"
                     required
@@ -683,17 +759,17 @@ export default function DashboardPage() {
                     value={newItemPrice}
                     onChange={(e) => setNewItemPrice(e.target.value)}
                     placeholder="0.00"
-                    className="w-full min-h-11 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all text-sm"
+                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm placeholder:text-gray-400"
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-semibold text-white/50 mb-1.5">Category</label>
+                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Category</label>
                   <input
                     type="text"
                     value={newItemCategory}
                     onChange={(e) => setNewItemCategory(e.target.value)}
                     placeholder="General"
-                    className="w-full min-h-11 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 transition-all text-sm"
+                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm placeholder:text-gray-400"
                   />
                 </div>
               </div>
@@ -702,14 +778,14 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 min-h-11 rounded-xl border border-white/10 text-white/60 font-medium text-sm hover:bg-white/5 transition-all"
+                  className="flex-1 min-h-11 bg-white border-2 border-black text-black font-bold text-sm shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-50 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={addingItem}
-                  className="flex-1 min-h-11 rounded-xl bg-orange-500 text-white font-bold text-sm hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 min-h-11 bg-success text-white border-2 border-black font-display font-black uppercase tracking-tight text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer rounded-none"
                 >
                   {addingItem ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -722,6 +798,90 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ── Printable QRs Sheet ── */}
+      {cafeId && (
+        <div id="print-area" className="hidden">
+          {printMode === "single" ? (
+            <div className="flex flex-col items-center justify-center p-8 bg-white min-h-[600px]">
+              <div className="border-4 border-black bg-[#f5f2eb] p-8 flex flex-col items-center justify-center text-center w-[250px] h-[360px] shadow-[6px_6px_0px_0px_#000]">
+                <h2 className="font-display font-black text-xl uppercase tracking-tight text-black mb-1">{cafeDetails?.business_name}</h2>
+                <div className="my-5 p-3 bg-white border-2 border-black">
+                  <QRCode value={`${origin || "https://quickorder.pages.dev"}/${cafeId}?table=${selectedTable}`} size={140} level="H" />
+                </div>
+                <p className="font-display font-black text-base uppercase tracking-wider text-black bg-warning border-2 border-black px-4 py-1.5 shadow-[3px_3px_0px_0px_#000]">
+                  {selectedTable === "0" ? "COUNTER" : `TABLE ${selectedTable}`}
+                </p>
+                <p className="text-[10px] font-black uppercase text-black/60 tracking-widest mt-4">SCAN TO ORDER</p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 bg-white">
+              <h1 className="text-2xl font-display font-black uppercase tracking-tight text-center mb-6 border-b-4 border-black pb-2">
+                {cafeDetails?.business_name} — QR Code Sheet
+              </h1>
+              <div className="grid grid-cols-2 gap-8 justify-items-center">
+                {/* Counter QR card */}
+                <div className="border-4 border-black bg-[#f5f2eb] p-6 flex flex-col items-center justify-center text-center w-[220px] h-[320px] shadow-[4px_4px_0px_0px_#000] break-inside-avoid">
+                  <h2 className="font-display font-black text-lg uppercase tracking-tight text-black mb-1">{cafeDetails?.business_name}</h2>
+                  <div className="my-4 p-2 bg-white border-2 border-black">
+                    <QRCode value={`${origin || "https://quickorder.pages.dev"}/${cafeId}?table=0`} size={120} level="H" />
+                  </div>
+                  <p className="font-display font-black text-sm uppercase tracking-wider text-black bg-warning border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_#000]">
+                    COUNTER
+                  </p>
+                  <p className="text-[10px] font-black uppercase text-black/60 tracking-widest mt-3">SCAN TO ORDER</p>
+                </div>
+
+                {/* Table QR cards */}
+                {cafeDetails?.table_count && Array.from({ length: cafeDetails.table_count }, (_, i) => {
+                  const num = String(i + 1);
+                  return (
+                    <div key={num} className="border-4 border-black bg-[#f5f2eb] p-6 flex flex-col items-center justify-center text-center w-[220px] h-[320px] shadow-[4px_4px_0px_0px_#000] break-inside-avoid">
+                      <h2 className="font-display font-black text-lg uppercase tracking-tight text-black mb-1">{cafeDetails?.business_name}</h2>
+                      <div className="my-4 p-2 bg-white border-2 border-black">
+                        <QRCode value={`${origin || "https://quickorder.pages.dev"}/${cafeId}?table=${num}`} size={120} level="H" />
+                      </div>
+                      <p className="font-display font-black text-sm uppercase tracking-wider text-black bg-warning border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_#000]">
+                        TABLE {num}
+                      </p>
+                      <p className="text-[10px] font-black uppercase text-black/60 tracking-widest mt-3">SCAN TO ORDER</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Embedded print stylesheet rules */}
+      <style>{`
+        @media print {
+          .no-print {
+            display: none !important;
+          }
+          #print-area {
+            display: block !important;
+            background: white !important;
+            width: 100% !important;
+            max-width: none !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 9999 !important;
+          }
+          .min-h-dvh, .max-w-md, .mx-auto, .bg-background {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
+

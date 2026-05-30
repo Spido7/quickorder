@@ -27,18 +27,18 @@ function StepIndicator({ current, total }: { current: Step; total: number }) {
       {Array.from({ length: total }, (_, i) => i + 1).map((s) => (
         <div key={s} className="flex items-center gap-2">
           <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+            className={`w-8 h-8 flex items-center justify-center text-sm font-black border-2 border-black transition-all ${
               s < current
-                ? "bg-green-500 text-white"
+                ? "bg-success text-white"
                 : s === current
-                ? "bg-orange-500 text-white ring-4 ring-orange-500/20"
-                : "bg-white/5 text-white/30 border border-white/10"
+                ? "bg-warning text-black shadow-[2px_2px_0px_0px_#000]"
+                : "bg-white text-black/30 border-black/25"
             }`}
           >
             {s < current ? "✓" : s}
           </div>
           {s < total && (
-            <div className={`h-0.5 w-6 rounded ${s < current ? "bg-green-500" : "bg-white/10"}`} />
+            <div className={`h-0.5 w-6 ${s < current ? "bg-black" : "bg-black/20"}`} />
           )}
         </div>
       ))}
@@ -53,20 +53,20 @@ function OptionCard({ selected, onClick, emoji, title, subtitle }: {
   return (
     <button
       onClick={onClick}
-      className={`w-full p-5 rounded-2xl border-2 text-left transition-all duration-200 active:scale-[0.98] ${
+      className={`w-full p-5 text-left transition-all active:scale-[0.98] border-2 border-black rounded-none cursor-pointer ${
         selected
-          ? "border-orange-500 bg-orange-500/10 shadow-lg shadow-orange-500/10"
-          : "border-white/10 bg-white/5 hover:border-white/20"
+          ? "bg-warning shadow-[4px_4px_0px_0px_#000]"
+          : "bg-white hover:bg-zinc-50 shadow-[2px_2px_0px_0px_#000]"
       }`}
     >
       <div className="flex items-start gap-4">
         <span className="text-4xl">{emoji}</span>
         <div className="flex-1">
-          <p className="font-semibold text-white text-base">{title}</p>
-          <p className="text-white/50 text-sm mt-1">{subtitle}</p>
+          <p className="font-black text-black text-base uppercase tracking-tight">{title}</p>
+          <p className="text-black/60 text-sm font-bold mt-1">{subtitle}</p>
         </div>
-        <div className={`mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? "border-orange-500 bg-orange-500" : "border-white/30"}`}>
-          {selected && <div className="w-2 h-2 rounded-full bg-white" />}
+        <div className={`mt-1 w-5 h-5 border-2 border-black flex items-center justify-center shrink-0 ${selected ? "bg-black" : "bg-white"}`}>
+          {selected && <div className="w-2 h-2 bg-white" />}
         </div>
       </div>
     </button>
@@ -80,15 +80,15 @@ function InputField({ label, value, onChange, placeholder, type = "text", hint }
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-white/60">{label}</label>
+      <label className="block text-xs font-black uppercase tracking-wider text-black">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full min-h-14 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all text-base"
+        className="w-full min-h-14 px-4 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-base placeholder:text-gray-400"
       />
-      {hint && <p className="text-xs text-white/30">{hint}</p>}
+      {hint && <p className="text-xs font-bold text-black/55">{hint}</p>}
     </div>
   );
 }
@@ -125,57 +125,57 @@ function MenuItemsStep({ cafeId }: { cafeId: string }) {
   return (
     <div className="space-y-4">
       {/* AI scan — disabled placeholder */}
-      <div className="relative rounded-2xl border-2 border-dashed border-white/15 bg-white/3 p-4">
+      <div className="relative border-2 border-dashed border-black bg-white p-4 rounded-none">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🤖</span>
             <div>
-              <p className="text-white/50 text-sm font-semibold leading-tight">
+              <p className="text-black font-black text-sm uppercase tracking-tight">
                 Upload Menu Photo (AI)
               </p>
-              <p className="text-white/25 text-xs mt-0.5">
+              <p className="text-black/55 text-xs mt-0.5 font-bold">
                 Snap your printed menu and we fill everything in
               </p>
             </div>
           </div>
-          <span className="shrink-0 text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-violet-500/20 text-violet-400 border border-violet-500/30">
+          <span className="shrink-0 text-xs font-black uppercase tracking-wider px-2.5 py-1 bg-violet-100 text-violet-700 border-2 border-black shadow-[2px_2px_0px_0px_#000]">
             Coming Soon
           </span>
         </div>
         {/* Disabled overlay — absorbs clicks */}
-        <div className="absolute inset-0 rounded-2xl cursor-not-allowed" />
+        <div className="absolute inset-0 cursor-not-allowed" />
       </div>
 
       {/* Divider */}
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-white/8" />
-        <span className="text-white/25 text-xs">or add manually</span>
-        <div className="flex-1 h-px bg-white/8" />
+        <div className="flex-1 h-0.5 bg-black/10" />
+        <span className="text-black/40 text-xs font-black uppercase">or add manually</span>
+        <div className="flex-1 h-0.5 bg-black/10" />
       </div>
 
       {/* Manual item form */}
-      <div className="bg-white/4 border border-white/8 rounded-2xl p-4 space-y-3">
+      <div className="bg-white border-2 border-black p-4 space-y-4 rounded-none shadow-[4px_4px_0px_0px_#000]">
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="block text-xs font-medium text-white/50 mb-1.5">Item Name</label>
+            <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Item Name</label>
             <input
               type="text"
               value={draft.name}
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
               placeholder="e.g. Masala Chai"
               onKeyDown={(e) => e.key === "Enter" && handleAddItem()}
-              className="w-full min-h-12 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all text-sm"
+              className="w-full min-h-12 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none text-sm placeholder:text-gray-400"
             />
           </div>
           <div className="w-28">
-            <label className="block text-xs font-medium text-white/50 mb-1.5">Price (₹)</label>
+            <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Price (₹)</label>
             <input
               type="number"
               value={draft.price}
               onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
               placeholder="0"
               min="0"
-              className="w-full min-h-12 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all text-sm"
+              className="w-full min-h-12 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none text-sm placeholder:text-gray-400"
             />
           </div>
         </div>
@@ -183,7 +183,7 @@ function MenuItemsStep({ cafeId }: { cafeId: string }) {
         <button
           onClick={handleAddItem}
           disabled={!canAdd || saving}
-          className="w-full min-h-12 rounded-xl bg-orange-500 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-all hover:brightness-110 flex items-center justify-center gap-2"
+          className="w-full min-h-12 bg-accent text-white font-display font-black uppercase tracking-tight text-sm border-2 border-black shadow-[3px_3px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           {saving ? (
             <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Adding…</>
@@ -193,22 +193,24 @@ function MenuItemsStep({ cafeId }: { cafeId: string }) {
         </button>
 
         {itemError && (
-          <p className="text-red-400 text-xs px-1">{itemError}</p>
+          <p className="text-danger text-xs font-bold px-1">⚠️ {itemError}</p>
         )}
       </div>
 
       {/* Saved items list */}
       {saved.length > 0 && (
-        <div className="space-y-1">
-          <p className="text-white/40 text-xs font-medium px-1 mb-2">
+        <div className="space-y-2">
+          <p className="text-black/60 text-xs font-black uppercase px-1">
             {saved.length} item{saved.length > 1 ? "s" : ""} added ✓
           </p>
-          {saved.map((item, i) => (
-            <div key={i} className="flex justify-between items-center px-3 py-2.5 rounded-xl bg-green-500/8 border border-green-500/20">
-              <span className="text-white/80 text-sm">{item.name}</span>
-              <span className="text-green-400 font-semibold text-sm">₹{item.price}</span>
-            </div>
-          ))}
+          <div className="space-y-1.5">
+            {saved.map((item, i) => (
+              <div key={i} className="flex justify-between items-center px-4 py-3 bg-success/10 border-2 border-black font-bold text-black rounded-none">
+                <span className="text-sm">{item.name}</span>
+                <span className="text-success font-black text-sm">₹{item.price}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -275,29 +277,29 @@ export default function SetupPage() {
   ];
 
   return (
-    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-8 bg-[#0d0d0f]">
+    <div className="min-h-dvh flex flex-col items-center justify-center px-4 py-8 bg-background">
       {/* Brand */}
       <div className="mb-8 text-center">
         <div className="inline-flex items-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center">
-            <span className="text-white text-sm font-bold">Q</span>
+          <div className="w-8 h-8 bg-black flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#ff6b35]">
+            <span className="text-white text-sm font-black">Q</span>
           </div>
-          <span className="font-bold text-lg text-white">QuickOrder POS</span>
+          <span className="font-display font-black text-xl text-black uppercase tracking-tight">QuickOrder POS</span>
         </div>
-        <p className="text-white/40 text-sm">Let&apos;s get your restaurant set up ✨</p>
+        <p className="text-black/60 text-sm font-bold uppercase tracking-wider">Let&apos;s get your restaurant set up ⚡</p>
       </div>
 
-      <div className="w-full max-w-md bg-[#16161a] border border-white/8 rounded-3xl p-6 shadow-2xl shadow-black/50">
+      <div className="w-full max-w-md bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none">
         <StepIndicator current={step} total={4} />
 
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-white">{titles[step - 1]}</h1>
-          <p className="text-white/50 text-sm mt-1">{subtitles[step - 1]}</p>
+          <h1 className="text-2xl font-display font-black uppercase text-black tracking-tight">{titles[step - 1]}</h1>
+          <p className="text-black/60 text-sm font-bold mt-1">{subtitles[step - 1]}</p>
         </div>
 
         {/* ── Step 1: Seating ── */}
         {step === 1 && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <OptionCard selected={state.seatingType === "tables"} onClick={() => setState((s) => ({ ...s, seatingType: "tables" }))} emoji="🪑" title="We have tables" subtitle="Customers sit down and scan a table QR code." />
             <OptionCard selected={state.seatingType === "takeaway"} onClick={() => setState((s) => ({ ...s, seatingType: "takeaway" }))} emoji="🛍️" title="Takeaway / Standing only" subtitle="No fixed seats. One QR for everyone." />
           </div>
@@ -308,10 +310,10 @@ export default function SetupPage() {
           state.seatingType === "tables" ? (
             <InputField label="Number of tables" value={state.tableCount} onChange={(v) => setState((s) => ({ ...s, tableCount: v }))} placeholder="e.g. 12" type="number" hint="You can change this later in settings." />
           ) : (
-            <div className="py-6 text-center">
+            <div className="py-6 text-center border-2 border-black bg-success/10 rounded-none shadow-[4px_4px_0px_0px_#000]">
               <span className="text-5xl">🎉</span>
-              <p className="text-white font-semibold mt-3">Nothing to do here!</p>
-              <p className="text-white/50 text-sm mt-1">We&apos;ll generate one shared QR for your counter.</p>
+              <p className="text-black font-black uppercase tracking-tight mt-3">Nothing to do here!</p>
+              <p className="text-black/60 text-sm font-bold mt-1">We&apos;ll generate one shared QR for your counter.</p>
             </div>
           )
         )}
@@ -321,7 +323,7 @@ export default function SetupPage() {
           <div className="space-y-4">
             <InputField label="Restaurant / Cafe name" value={state.businessName} onChange={(v) => setState((s) => ({ ...s, businessName: v }))} placeholder="e.g. Chai Corner" hint="Appears on the customer menu page." />
             <InputField label="UPI ID" value={state.upiId} onChange={(v) => setState((s) => ({ ...s, upiId: v }))} placeholder="e.g. yourcafe@upi" hint="Customers pay directly to this ID." />
-            {error && <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>}
+            {error && <div className="p-3 border-2 border-black bg-danger/10 text-danger text-sm font-bold">⚠️ {error}</div>}
           </div>
         )}
 
@@ -333,35 +335,36 @@ export default function SetupPage() {
         {/* ── Navigation ── */}
         <div className="flex gap-3 mt-8">
           {step > 1 && step < 4 && (
-            <button onClick={back} className="flex-1 min-h-12 rounded-xl border border-white/10 text-white/60 font-medium text-sm active:scale-[0.97] transition-all hover:border-white/20">
+            <button onClick={back} className="flex-1 min-h-12 bg-white border-2 border-black text-black font-bold text-sm shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none hover:bg-zinc-50 transition-all cursor-pointer">
               ← Back
             </button>
           )}
 
           {step < 3 && (
-            <button onClick={next} disabled={step === 1 ? !canStep1 : !canStep2} className="flex-1 min-h-12 rounded-xl bg-orange-500 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-all hover:brightness-110">
+            <button onClick={next} disabled={step === 1 ? !canStep1 : !canStep2} className="flex-1 min-h-12 bg-warning text-black font-display font-black uppercase tracking-tight text-sm border-2 border-black shadow-[3px_3px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer">
               Continue →
             </button>
           )}
 
           {step === 3 && (
-            <button onClick={handleSubmitCafe} disabled={!canStep3 || loading} className="flex-1 min-h-12 rounded-xl bg-orange-500 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] transition-all hover:brightness-110 flex items-center justify-center gap-2">
-              {loading ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</> : "Save & Continue →"}
+            <button onClick={handleSubmitCafe} disabled={!canStep3 || loading} className="flex-1 min-h-12 bg-warning text-black font-display font-black uppercase tracking-tight text-sm border-2 border-black shadow-[3px_3px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer">
+              {loading ? <><span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />Saving…</> : "Save & Continue →"}
             </button>
           )}
 
           {step === 4 && (
-            <button onClick={() => router.push("/dashboard")} className="flex-1 min-h-12 rounded-xl bg-green-500 text-white font-bold text-sm active:scale-[0.97] transition-all hover:brightness-110 shadow-lg shadow-green-500/25">
+            <button onClick={() => router.push("/dashboard")} className="flex-1 min-h-12 bg-success text-white font-display font-black uppercase tracking-tight text-sm border-2 border-black shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer">
               Go to Dashboard 🎉
             </button>
           )}
         </div>
       </div>
 
-      <p className="mt-6 text-xs text-white/25 text-center">
+      <p className="mt-6 text-xs text-black/60 font-bold uppercase tracking-wider text-center">
         Already set up?{" "}
-        <a href="/dashboard" className="text-orange-500 hover:underline">Go to dashboard</a>
+        <a href="/dashboard" className="text-accent underline font-black">Go to dashboard</a>
       </p>
     </div>
   );
 }
+
