@@ -41,6 +41,7 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -71,4 +72,45 @@ body {
   outline-offset: 2px;
   border-radius: 0px;
 }
+
+/* Neo-Brutalist Scroll Reveal Animation Styles */
+.reveal-text-fill {
+  color: transparent !important;
+  -webkit-text-stroke: 1.5px var(--border);
+  transition: color 0.6s cubic-bezier(0.16, 1, 0.3, 1), -webkit-text-stroke 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-text-fill.revealed {
+  color: var(--text-primary) !important;
+  -webkit-text-stroke: 1.5px transparent;
+}
+.reveal-text-fill-accent {
+  color: transparent !important;
+  -webkit-text-stroke: 1.5px var(--border);
+  transition: color 0.6s cubic-bezier(0.16, 1, 0.3, 1), -webkit-text-stroke 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-text-fill-accent.revealed {
+  color: var(--accent) !important;
+  -webkit-text-stroke: 1.5px transparent;
+}
+
+.reveal-slide-up {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-slide-up.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-card-pop {
+  opacity: 0;
+  transform: scale(0.95) translateY(15px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-card-pop.revealed {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
 
