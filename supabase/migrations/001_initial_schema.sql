@@ -41,11 +41,15 @@ alter table public.cafes enable row level security;
 alter table public.menu_items enable row level security;
 alter table public.orders enable row level security;
 
--- Cafes: owner full access
+-- Cafes: owner full access, public can read details
 create policy "Cafe owner full access"
   on public.cafes for all
   using (auth.uid() = id)
   with check (auth.uid() = id);
+
+create policy "Public cafe read"
+  on public.cafes for select
+  using (true);
 
 -- Menu items: public can read, owner can write
 create policy "Public menu read"
