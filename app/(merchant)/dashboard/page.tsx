@@ -264,7 +264,12 @@ export default function DashboardPage() {
   } | null>(null);
   const [selectedTable, setSelectedTable] = useState<string>("0");
   const [printMode, setPrintMode] = useState<"single" | "all">("single");
-  const [origin, setOrigin] = useState("");
+  const [origin, setOrigin] = useState(() => {
+    if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_APP_URL) {
+      return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+    }
+    return "";
+  });
   const [isQrExpanded, setIsQrExpanded] = useState(false);
 
   // Modal states for adding menu items
@@ -283,7 +288,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setOrigin(window.location.origin);
+      setOrigin(prev => prev || window.location.origin.replace(/\/$/, ""));
     }
   }, []);
 
