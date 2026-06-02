@@ -139,3 +139,26 @@ alter table public.orders enable row level security;
 npm run dev
 ```
 Open `http://localhost:3000` to view the app locally.
+
+---
+
+## Troubleshooting & Local QR Scanning
+
+### 1. QR Code Scans Not Opening the Menu
+If you scan a generated QR code from your mobile device during local development and the page fails to load (e.g., connection timed out or `localhost` refused to connect):
+* **Cause:** The generator previously encoded `window.location.origin` (`http://localhost:3000` locally). Mobile devices scanning this cannot resolve `localhost` since it points back to the mobile device itself.
+* **Solution:** Configure your local network IP or public tunnel (like Ngrok) in your `.env.local` file:
+  ```env
+  NEXT_PUBLIC_APP_URL=http://192.168.1.15:3000
+  ```
+  The dashboard reads this variable, strips trailing slashes, and encodes the correct network address into the generated QR codes.
+
+### 2. "Menu not found" Error after Scanning
+If the scanned URL successfully opens but shows a **"Menu not found"** error screen:
+* **Cause:** Row Level Security (RLS) is enabled on the `cafes` table, but there was no public SELECT policy. Since customers view the storefront anonymously, the database returned 0 rows for the cafe lookup query.
+* **Solution:** Ensure the following SELECT policy is active in your Supabase database (this is included in `/supabase/migrations/001_initial_schema.sql`):
+  ```sql
+  create policy "Public cafe read"
+    on public.cafes for select
+    using (true);
+  ```
