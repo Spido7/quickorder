@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+
 export async function updateAutoResetPreference(cafeId: string, status: boolean) {
   const supabase = await createClient();
 

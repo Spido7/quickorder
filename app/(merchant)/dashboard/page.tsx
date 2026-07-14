@@ -7,6 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import type { MenuItem, Order } from "@/lib/types";
 import { createCategory, deleteCategory } from "./actions";
 
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+
+
 // ─── Audio hook ───────────────────────────────────────────────────────────────
 // Browsers block autoplay until the user interacts with the page.
 // We expose `unlocked` + `unlock()` so the UI can show a one-time prompt.

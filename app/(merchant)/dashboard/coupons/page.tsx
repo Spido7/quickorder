@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Coupon } from "@/lib/types";
+import { createCoupon, toggleCoupon, deleteCoupon } from "../actions";
+
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+
 
 export default function CouponsPage() {
   const router = useRouter();
@@ -86,32 +91,18 @@ export default function CouponsPage() {
         throw new Error("Percentage discount cannot exceed 100%.");
       }
 
-      const { data: coupon, error: insertError } = await supabase
-        .from("coupons")
-        .insert({
-          merchant_id: cafeId,
-          code: code.trim().toUpperCase(),
-          discount_type: discountType,
-          discount_value: val,
-          min_order_value: parseFloat(minOrderValue) || 0,
-          max_discount_amount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
-          usage_limit: usageLimit ? parseInt(usageLimit) : null,
-          expires_at: expiresAt || null,
-          is_active: true,
-          times_used: 0,
-        })
-        .select()
-        .single();
+      const result = await createCoupon(cafeId, {
+        code: code.trim(),
+        discount_type: discountType,
+        discount_value: val,
+        min_order_value: parseFloat(minOrderValue) || 0,
+        max_discount_amount: maxDiscountAmount ? parseFloat(maxDiscountAmount) : null,
+        usage_limit: usageLimit ? parseInt(usageLimit) : null,
+        expires_at: expiresAt || null,
+      });
 
-      if (insertError) {
-        if (insertError.code === "23505") {
-          throw new Error("A coupon with this code already exists.");
-        }
-        throw new Error(insertError.message);
-      }
-
-      if (coupon) {
-        setCoupons((prev) => [coupon as Coupon, ...prev]);
+      if (result.success && result.coupon) {
+        setCoupons((prev) => [result.coupon as Coupon, ...prev]);
         setFormSuccess(`Coupon "${code.trim().toUpperCase()}" created successfully!`);
         resetForm();
         setTimeout(() => setFormSuccess(null), 4000);
@@ -129,12 +120,7 @@ export default function CouponsPage() {
       prev.map((c) => (c.id === couponId ? { ...c, is_active: !currentActive } : c))
     );
     try {
-      const { error } = await supabase
-        .from("coupons")
-        .update({ is_active: !currentActive })
-        .eq("id", couponId);
-
-      if (error) throw error;
+      await toggleCoupon(couponId, !currentActive);
     } catch (err: any) {
       // Revert on error
       setCoupons((prev) =>
@@ -147,18 +133,16 @@ export default function CouponsPage() {
   const handleDelete = async (couponId: string, couponCode: string) => {
     if (!confirm(`Are you sure you want to delete coupon "${couponCode}"? This cannot be undone.`)) return;
 
-    const backup = [...coupons];
     setCoupons((prev) => prev.filter((c) => c.id !== couponId));
     try {
-      const { error } = await supabase
-        .from("coupons")
-        .delete()
-        .eq("id", couponId);
-
-      if (error) throw error;
+      await deleteCoupon(couponId);
     } catch (err: any) {
-      setCoupons(backup); // Revert on error
       alert(err.message || "Failed to delete coupon.");
+      // Refetch on error
+      if (cafeId) {
+        const { data } = await supabase.from("coupons").select("*").eq("merchant_id", cafeId).order("created_at", { ascending: false });
+        if (data) setCoupons(data as Coupon[]);
+      }
     }
   };
 

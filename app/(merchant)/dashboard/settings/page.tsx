@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { updateAutoResetPreference } from "../actions";
 
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+
+
 // ─── Toggle Switch ────────────────────────────────────────────────────────────
 function ToggleSwitch({ checked, onChange, disabled }: {
   checked: boolean; onChange: (v: boolean) => void; disabled?: boolean;
