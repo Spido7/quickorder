@@ -17,11 +17,14 @@ interface PublicMenuItem {
   id: string;
   name: string;
   price: number;
+  is_available: boolean;
+  category_id?: string | null;
 }
 
 interface Props {
   cafe: Pick<Cafe, "id" | "business_name" | "upi_id" | "has_seating">;
   items: PublicMenuItem[];
+  categories: { id: string; name: string; sort_order: number }[];
   initialTable?: string;
 }
 
@@ -66,7 +69,11 @@ const MenuItemRow = memo(function MenuItemRow({
   dispatch: React.Dispatch<CartAction>;
 }) {
   const add = useCallback(
-    () => dispatch({ type: "ADD", item: { id: item.id, name: item.name, price: item.price } }),
+    () => {
+      if (!item.is_available) return;
+      dispatch({ type: "ADD", item: { id: item.id, name: item.name, price: item.price } }),
+      [dispatch, item]
+    },
     [dispatch, item]
   );
   const remove = useCallback(
@@ -75,10 +82,21 @@ const MenuItemRow = memo(function MenuItemRow({
   );
 
   return (
-    <div className="flex items-center gap-4 py-4 border-b-2 border-black bg-white px-4 my-2 border-2 shadow-[2px_2px_0px_0px_#000]">
+    <div
+      className={`flex items-center gap-4 py-4 border-b-2 border-black bg-white px-4 my-2 border-2 shadow-[2px_2px_0px_0px_#000] transition-all ${
+        !item.is_available ? "opacity-50 grayscale" : ""
+      }`}
+    >
       {/* Item info */}
       <div className="flex-1 min-w-0">
-        <p className="text-black font-display font-bold text-base leading-snug">{item.name}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-black font-display font-bold text-base leading-snug">{item.name}</p>
+          {!item.is_available && (
+            <span className="bg-black text-white px-2 py-0.5 text-[10px] uppercase font-black tracking-wider rounded-none border border-black shadow-[1px_1px_0px_0px_#000]">
+              Sold Out
+            </span>
+          )}
+        </div>
         <p className="text-accent font-sans font-bold text-sm mt-0.5">₹{item.price}</p>
       </div>
 
@@ -86,10 +104,15 @@ const MenuItemRow = memo(function MenuItemRow({
       {quantity === 0 ? (
         <button
           onClick={add}
-          aria-label={`Add ${item.name}`}
-          className="w-10 h-10 bg-warning text-black text-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+          disabled={!item.is_available}
+          aria-label={item.is_available ? `Add ${item.name}` : `${item.name} is Out of Stock`}
+          className={
+            item.is_available
+              ? "w-10 h-10 bg-warning text-black text-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+              : "px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-black uppercase tracking-wider border-2 border-black cursor-not-allowed flex items-center justify-center rounded-none shadow-none"
+          }
         >
-          +
+          {item.is_available ? "+" : "Out of Stock"}
         </button>
       ) : (
         <div className="flex items-center gap-2.5">
@@ -187,10 +210,24 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
         </div>
       </div>
 
+      {/* Discount / Total Amount */}
+      {order.discount_amount && Number(order.discount_amount) > 0 ? (
+        <div className="py-3 border-b-2 border-dashed border-black space-y-1 text-xs font-bold uppercase tracking-wider">
+          <div className="flex justify-between text-gray-500">
+            <span>Subtotal</span>
+            <span className="font-mono">₹{(Number(order.total_amount) + Number(order.discount_amount)).toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-success">
+            <span>Discount Applied</span>
+            <span className="font-mono">-₹{Number(order.discount_amount).toFixed(2)}</span>
+          </div>
+        </div>
+      ) : null}
+
       {/* Total Amount */}
       <div className="pt-4 flex justify-between items-center font-display font-black text-lg">
         <span className="uppercase tracking-tight">Total Amount</span>
-        <span className="font-mono">₹{order.total_amount}</span>
+        <span className="font-mono">₹{Number(order.total_amount).toFixed(2)}</span>
       </div>
     </div>
   );
@@ -223,6 +260,17 @@ function CheckoutSheet({
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Promo code states
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discountAmount: number } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
+
+  // Derived price breakdown
+  const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  const finalTotal = Math.max(0, total - discount);
+
   // Reset sheet state whenever it opens
   useEffect(() => {
     if (isOpen) {
@@ -230,6 +278,10 @@ function CheckoutSheet({
       setPlacedOrder(null);
       setError(null);
       setLoading(false);
+      setPromoCode("");
+      setAppliedCoupon(null);
+      setPromoError(null);
+      setPromoSuccess(null);
       
       // Auto-set from search param if scanning table QR
       if (initialTable !== undefined) {
@@ -247,6 +299,48 @@ function CheckoutSheet({
   const placeholder = cafe.has_seating ? "e.g. 4" : "e.g. Rahul";
   const canPay = identifier.trim().length > 0 && !loading;
 
+  async function handleApplyPromo() {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoSuccess(null);
+
+    try {
+      const res = await fetch("/api/validate-coupon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: promoCode.trim(),
+          merchant_id: cafe.id,
+          cart_subtotal: total,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to validate coupon.");
+      }
+
+      setAppliedCoupon({
+        id: data.coupon_id,
+        code: promoCode.trim().toUpperCase(),
+        discountAmount: data.discount_amount,
+      });
+      setPromoSuccess(`Coupon applied! Saved ₹${data.discount_amount.toFixed(2)}`);
+    } catch (err: any) {
+      setPromoError(err.message || "Invalid coupon code.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function handleRemovePromo() {
+    setAppliedCoupon(null);
+    setPromoCode("");
+    setPromoSuccess(null);
+    setPromoError(null);
+  }
+
   async function handlePay() {
     setLoading(true);
     setError(null);
@@ -260,9 +354,11 @@ function CheckoutSheet({
         .insert({
           cafe_id: cafe.id,
           table_number: identifier.trim(),
-          total_amount: total,
+          total_amount: finalTotal,
           cart_items: cart,
           order_status: "pending",
+          coupon_id: appliedCoupon ? appliedCoupon.id : null,
+          discount_amount: discount,
         })
         .select()
         .single<Order>();
@@ -285,7 +381,7 @@ function CheckoutSheet({
         `&pn=${encodeURIComponent(cafe.business_name)}` +
         `&tr=${encodeURIComponent(newOrder.id.replace(/-/g, ""))}` +
         `&mc=5812` +
-        `&am=${total.toFixed(2)}` +
+        `&am=${finalTotal.toFixed(2)}` +
         `&cu=INR` +
         `&tn=${encodeURIComponent("Order from " + (cafe.has_seating ? stationName : identifier.trim()))}`;
 
@@ -369,7 +465,7 @@ function CheckoutSheet({
                       `&pn=${encodeURIComponent(cafe.business_name)}` +
                       `&tr=${encodeURIComponent(placedOrder.id.replace(/-/g, ""))}` +
                       `&mc=5812` +
-                      `&am=${total.toFixed(2)}&cu=INR` +
+                      `&am=${placedOrder.total_amount.toFixed(2)}&cu=INR` +
                       `&tn=${encodeURIComponent("Order from " + (cafe.has_seating ? stationName : identifier.trim()))}`;
                     window.location.href = link;
                   }}
@@ -404,11 +500,70 @@ function CheckoutSheet({
                   </div>
                 ))}
 
+                {/* Price Breakdown */}
+                {appliedCoupon ? (
+                  <>
+                    <div className="flex justify-between items-center px-4 py-2 border-t-2 border-black bg-white text-xs font-bold text-black/60 uppercase">
+                      <span>Subtotal</span>
+                      <span>₹{total.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center px-4 py-2 border-t border-black bg-white text-xs font-bold text-success uppercase">
+                      <span>Coupon ({appliedCoupon.code})</span>
+                      <span>-₹{discount.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : null}
+
                 {/* Total row */}
                 <div className="flex justify-between items-center px-4 py-3 bg-[#fcbf49]/20 border-t-2 border-black">
                   <span className="text-black font-display font-black uppercase tracking-tight">Total</span>
-                  <span className="text-accent font-black text-lg">₹{total}</span>
+                  <span className="text-accent font-black text-lg">₹{finalTotal.toFixed(2)}</span>
                 </div>
+              </div>
+
+              {/* Promo Code Input */}
+              <div className="mb-5">
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-2">
+                  Promo Code
+                </label>
+                <div className="flex gap-2.5">
+                  <input
+                    type="text"
+                    disabled={promoLoading || appliedCoupon !== null}
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value)}
+                    placeholder="ENTER CODE"
+                    className="flex-1 min-h-12 px-4 border-2 border-black bg-white text-black placeholder:text-gray-400 font-bold focus:outline-none focus:ring-0 focus:border-accent disabled:bg-gray-100 disabled:text-gray-500 rounded-none text-base uppercase"
+                  />
+                  {appliedCoupon !== null ? (
+                    <button
+                      onClick={handleRemovePromo}
+                      className="px-4 bg-danger text-white font-display font-bold text-xs border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer uppercase font-black"
+                    >
+                      Remove
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleApplyPromo}
+                      disabled={promoLoading || !promoCode.trim()}
+                      className="px-6 bg-warning text-black font-display font-black text-xs border-2 border-black shadow-[2px_2px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer uppercase font-black"
+                    >
+                      {promoLoading ? "..." : "Apply"}
+                    </button>
+                  )}
+                </div>
+
+                {/* Promo Messages */}
+                {promoError && (
+                  <p className="text-danger text-xs font-bold mt-1.5 uppercase tracking-wide">
+                    ⚠️ {promoError}
+                  </p>
+                )}
+                {promoSuccess && (
+                  <p className="text-success text-xs font-bold mt-1.5 uppercase tracking-wide">
+                    🎉 {promoSuccess}
+                  </p>
+                )}
               </div>
 
               {/* Identifier input */}
@@ -458,7 +613,7 @@ function CheckoutSheet({
                 ) : (
                   <>
                     <span>💳</span>
-                    Pay ₹{total} via UPI
+                    Pay ₹{finalTotal.toFixed(2)} via UPI
                   </>
                 )}
               </button>
@@ -467,7 +622,7 @@ function CheckoutSheet({
                 Opens GPay, PhonePe, Paytm or any UPI app
               </p>
               <div className="mt-4 p-2.5 border border-black/20 bg-warning/10 text-black/75 text-[10px] font-bold leading-normal uppercase tracking-wide rounded-none text-center">
-                💡 Note: If the amount is not pre-filled in your UPI app, please type <span className="text-accent font-black">₹{total}</span> manually. UPI restricts auto-filling for personal accounts.
+                💡 Note: If the amount is not pre-filled in your UPI app, please type <span className="text-accent font-black">₹{finalTotal.toFixed(2)}</span> manually. UPI restricts auto-filling for personal accounts.
               </div>
             </>
           )}
@@ -537,7 +692,7 @@ function OrderHistorySheet({
 }
 
 // ─── Main Client Component ────────────────────────────────────────────────────
-export default function MenuClient({ cafe, items, initialTable }: Props) {
+export default function MenuClient({ cafe, items, categories, initialTable }: Props) {
   const [cart, dispatch] = useReducer(cartReducer, []);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -742,15 +897,53 @@ export default function MenuClient({ cafe, items, initialTable }: Props) {
             </p>
           </div>
         ) : (
-          <div className="space-y-1">
-            {items.map((item) => (
-              <MenuItemRow
-                key={item.id}
-                item={item}
-                quantity={quantityMap[item.id] ?? 0}
-                dispatch={dispatch}
-              />
-            ))}
+          <div className="space-y-6">
+            {categories.map((category) => {
+              const categoryItems = items.filter((item) => item.category_id === category.id);
+              if (categoryItems.length === 0) return null;
+              return (
+                <div key={category.id} className="space-y-2">
+                  <h2 className="font-display font-black text-base uppercase tracking-tight text-black border-b-2 border-black pb-1 mt-4">
+                    {category.name}
+                  </h2>
+                  <div className="space-y-1">
+                    {categoryItems.map((item) => (
+                      <MenuItemRow
+                        key={item.id}
+                        item={item}
+                        quantity={quantityMap[item.id] ?? 0}
+                        dispatch={dispatch}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Uncategorized Items */}
+            {(() => {
+              const uncategorizedItems = items.filter(
+                (item) => !item.category_id || !categories.some((c) => c.id === item.category_id)
+              );
+              if (uncategorizedItems.length === 0) return null;
+              return (
+                <div className="space-y-2">
+                  <h2 className="font-display font-black text-base uppercase tracking-tight text-black border-b-2 border-black pb-1 mt-4">
+                    Other Items
+                  </h2>
+                  <div className="space-y-1">
+                    {uncategorizedItems.map((item) => (
+                      <MenuItemRow
+                        key={item.id}
+                        item={item}
+                        quantity={quantityMap[item.id] ?? 0}
+                        dispatch={dispatch}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </main>

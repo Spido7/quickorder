@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
 import type { MenuItem, Order } from "@/lib/types";
+import { createCategory, deleteCategory } from "./actions";
 
 // ─── Audio hook ───────────────────────────────────────────────────────────────
 // Browsers block autoplay until the user interacts with the page.
@@ -74,8 +75,10 @@ function ToggleSwitch({ checked, onChange, disabled }: {
 }
 
 // ─── Menu Item Row ────────────────────────────────────────────────────────────
-function MenuItemRow({ item, onToggle }: {
-  item: MenuItem; onToggle: (id: string, val: boolean) => Promise<void>;
+function MenuItemRow({ item, onToggle, onEdit }: {
+  item: MenuItem;
+  onToggle: (id: string, val: boolean) => Promise<void>;
+  onEdit: (item: MenuItem) => void;
 }) {
   const [busy, setBusy] = useState(false);
   async function handleToggle(val: boolean) {
@@ -87,8 +90,15 @@ function MenuItemRow({ item, onToggle }: {
         <p className={`font-black text-base uppercase tracking-tight truncate ${item.is_available ? "text-black" : "text-black/40 line-through"}`}>{item.name}</p>
         <p className="text-accent font-black text-sm mt-0.5">₹{item.price}</p>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <span className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 border border-black shadow-[1px_1px_0px_0px_#000] ${item.is_available ? "bg-success/20 text-success" : "bg-zinc-100 text-zinc-455"}`}>
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => onEdit(item)}
+          className="p-1.5 border-2 border-black bg-zinc-100 hover:bg-warning hover:translate-x-[0.5px] hover:translate-y-[0.5px] active:translate-x-[1px] active:translate-y-[1px] shadow-[1px_1px_0px_0px_#000] active:shadow-none transition-all cursor-pointer font-bold text-xs"
+          title="Edit item"
+        >
+          ✏️
+        </button>
+        <span className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 border border-black shadow-[1px_1px_0px_0px_#000] ${item.is_available ? "bg-success/20 text-success" : "bg-zinc-100 text-zinc-400"}`}>
           {item.is_available ? "Live" : "Off"}
         </span>
         <ToggleSwitch checked={item.is_available} onChange={handleToggle} disabled={busy} />
@@ -280,6 +290,21 @@ export default function DashboardPage() {
   const [addError, setAddError] = useState<string | null>(null);
   const [addingItem, setAddingItem] = useState(false);
 
+  // Category management & Edit modal states
+  const [categories, setCategories] = useState<{ id: string; name: string; sort_order: number }[]>([]);
+  const [isManageCatOpen, setIsManageCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [creatingCat, setCreatingCat] = useState(false);
+  const [newItemCategoryId, setNewItemCategoryId] = useState("");
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editItemId, setEditItemId] = useState("");
+  const [editItemName, setEditItemName] = useState("");
+  const [editItemPrice, setEditItemPrice] = useState("");
+  const [editItemCategoryId, setEditItemCategoryId] = useState("");
+  const [updatingItem, setUpdatingItem] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
   // Stable client ref — avoids re-creating on every render
   const [supabase] = useState(() => createClient());
 
@@ -319,13 +344,16 @@ export default function DashboardPage() {
         throw new Error("Price must be a positive number");
       }
 
+      const selectedCatName = categories.find((c) => c.id === newItemCategoryId)?.name || "General";
+
       const { data, error } = await supabase
         .from("menu_items")
         .insert({
           cafe_id: cafeId,
           name: newItemName.trim(),
           price: priceVal,
-          category: newItemCategory.trim() || "General",
+          category: selectedCatName,
+          category_id: newItemCategoryId || null,
           is_available: true,
         })
         .select()
@@ -338,12 +366,97 @@ export default function DashboardPage() {
         setIsAddModalOpen(false);
         setNewItemName("");
         setNewItemPrice("");
-        setNewItemCategory("General");
+        setNewItemCategoryId("");
       }
     } catch (err: any) {
       setAddError(err.message || "Failed to add menu item");
     } finally {
       setAddingItem(false);
+    }
+  };
+
+  const handleCreateCatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim() || !cafeId) return;
+    setCreatingCat(true);
+    try {
+      const result = await createCategory(cafeId, newCatName.trim());
+      if (result.success && result.category) {
+        setCategories((prev) => [...prev, result.category].sort((a, b) => a.sort_order - b.sort_order));
+        setNewCatName("");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to create category");
+    } finally {
+      setCreatingCat(false);
+    }
+  };
+
+  const handleDeleteCatSubmit = async (categoryId: string) => {
+    if (!confirm("Are you sure you want to delete this category? Items in this category will become Uncategorized.")) return;
+    try {
+      const result = await deleteCategory(categoryId);
+      if (result.success) {
+        setCategories((prev) => prev.filter((c) => c.id !== categoryId));
+        // Also update local menuItems state
+        setMenuItems((prev) =>
+          prev.map((item) => (item.category_id === categoryId ? { ...item, category_id: null, category: "General" } : item))
+        );
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to delete category");
+    }
+  };
+
+  const handleEditClick = (item: MenuItem) => {
+    setEditItemId(item.id);
+    setEditItemName(item.name);
+    setEditItemPrice(String(item.price));
+    setEditItemCategoryId(item.category_id || "");
+    setEditError(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditMenuItemSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editItemName.trim() || !editItemPrice.trim()) return;
+    setUpdatingItem(true);
+    setEditError(null);
+
+    try {
+      const priceVal = parseFloat(editItemPrice);
+      if (isNaN(priceVal) || priceVal <= 0) {
+        throw new Error("Price must be a positive number");
+      }
+
+      const selectedCatName = categories.find((c) => c.id === editItemCategoryId)?.name || "General";
+
+      const { data, error } = await supabase
+        .from("menu_items")
+        .update({
+          name: editItemName.trim(),
+          price: priceVal,
+          category: selectedCatName,
+          category_id: editItemCategoryId || null,
+        })
+        .eq("id", editItemId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setMenuItems((prev) =>
+          prev
+            .map((item) => (item.id === editItemId ? (data as MenuItem) : item))
+            .sort((a, b) => a.name.localeCompare(b.name))
+        );
+        setIsEditModalOpen(false);
+      }
+    } catch (err: any) {
+      setEditError(err.message || "Failed to update menu item");
+    } finally {
+      setUpdatingItem(false);
     }
   };
 
@@ -375,6 +488,13 @@ export default function DashboardPage() {
       const { data: items } = await supabase
         .from("menu_items").select("*").eq("cafe_id", currentCafeId).order("name");
       if (items) setMenuItems(items);
+
+      const { data: catData } = await supabase
+        .from("menu_categories")
+        .select("*")
+        .eq("cafe_id", currentCafeId)
+        .order("sort_order", { ascending: true });
+      if (catData) setCategories(catData);
       setLoadingMenu(false);
 
       const { data: ordersData } = await supabase
@@ -601,13 +721,19 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {incomingOrders.length > 0 && (
               <div className="w-2.5 h-2.5 bg-warning border border-black rounded-full animate-ping" />
             )}
             {unlocked && (
               <div className="w-2 h-2 bg-success border border-black rounded-full" title="Alerts active" />
             )}
+            <button
+              onClick={() => router.push("/dashboard/settings")}
+              className="text-black font-black text-xs border-2 border-black bg-white px-2.5 py-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-colors flex items-center gap-1 rounded-none"
+            >
+              ⚙️ Settings
+            </button>
           </div>
         </div>
       </header>
@@ -710,20 +836,77 @@ export default function DashboardPage() {
           </div>
         )}
         {tab === "menu" && (
-          <div className="px-4">
+          <div className="px-4 text-black">
             {loadingMenu && (
               <div className="py-8 flex justify-center">
                 <span className="w-6 h-6 border-2 border-black border-t-accent rounded-full animate-spin" />
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {menuItems.map((item) => (
-                <div key={item.id} className="bg-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_#000] overflow-hidden">
-                  <MenuItemRow item={item} onToggle={handleToggleItem} />
+
+            {/* Manage Categories Banner */}
+            <div className="mb-6 p-4 bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] rounded-none">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-display font-black text-sm uppercase tracking-tight flex items-center gap-1.5 text-black">
+                    📂 Menu Categories
+                  </h3>
+                  <p className="text-black/60 text-xs font-bold leading-normal mt-0.5">
+                    Organize your menu items. Customers will see them grouped by category on their screens.
+                  </p>
                 </div>
-              ))}
+                <button
+                  onClick={() => setIsManageCatOpen(true)}
+                  className="px-3 py-1.5 bg-warning text-black border-2 border-black font-bold text-xs uppercase shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer w-fit shrink-0 rounded-none"
+                >
+                  Manage Categories
+                </button>
+              </div>
             </div>
-            <p className="text-black/60 text-xs font-bold uppercase tracking-wider text-center mt-6">
+
+            <div className="space-y-6">
+              {categories.map((category) => {
+                const categoryItems = menuItems.filter((item) => item.category_id === category.id);
+                if (categoryItems.length === 0) return null;
+                return (
+                  <div key={category.id} className="space-y-3">
+                    <h3 className="font-display font-black text-sm uppercase tracking-tight text-black border-b-2 border-black pb-1">
+                      {category.name} ({categoryItems.length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {categoryItems.map((item) => (
+                        <div key={item.id} className="bg-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_#000] overflow-hidden">
+                          <MenuItemRow item={item} onToggle={handleToggleItem} onEdit={handleEditClick} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Uncategorized Items */}
+              {(() => {
+                const uncategorizedItems = menuItems.filter(
+                  (item) => !item.category_id || !categories.some((c) => c.id === item.category_id)
+                );
+                if (uncategorizedItems.length === 0) return null;
+                return (
+                  <div className="space-y-3">
+                    <h3 className="font-display font-black text-sm uppercase tracking-tight text-black border-b-2 border-black pb-1">
+                      Other Items ({uncategorizedItems.length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {uncategorizedItems.map((item) => (
+                        <div key={item.id} className="bg-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_#000] overflow-hidden">
+                          <MenuItemRow item={item} onToggle={handleToggleItem} onEdit={handleEditClick} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <p className="text-black/60 text-xs font-bold uppercase tracking-wider text-center mt-8">
               {menuItems.filter((i) => i.is_available).length} of {menuItems.length} items live
             </p>
 
@@ -746,7 +929,7 @@ export default function DashboardPage() {
       {/* Add Menu Item Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-sm bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200 text-black">
             <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
               <h3 className="text-black font-display font-black text-lg uppercase tracking-tight">Add Menu Item</h3>
               <button 
@@ -792,13 +975,18 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex-1">
                   <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Category</label>
-                  <input
-                    type="text"
-                    value={newItemCategory}
-                    onChange={(e) => setNewItemCategory(e.target.value)}
-                    placeholder="General"
-                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm placeholder:text-gray-400"
-                  />
+                  <select
+                    value={newItemCategoryId}
+                    onChange={(e) => setNewItemCategoryId(e.target.value)}
+                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
+                  >
+                    <option value="">Uncategorized</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -821,6 +1009,155 @@ export default function DashboardPage() {
                     "Add Item"
                   )}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Menu Item Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200 text-black">
+            <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
+              <h3 className="text-black font-display font-black text-lg uppercase tracking-tight">Edit Menu Item</h3>
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-black/60 hover:text-black font-black text-base cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {editError && (
+              <div className="mb-4 p-2.5 border-2 border-black bg-danger/10 text-danger text-xs font-bold">
+                ⚠️ {editError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditMenuItemSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Item Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editItemName}
+                  onChange={(e) => setEditItemName(e.target.value)}
+                  placeholder="e.g. Cold Coffee"
+                  className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Price (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0.01"
+                    step="0.01"
+                    value={editItemPrice}
+                    onChange={(e) => setEditItemPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Category</label>
+                  <select
+                    value={editItemCategoryId}
+                    onChange={(e) => setEditItemCategoryId(e.target.value)}
+                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
+                  >
+                    <option value="">Uncategorized</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 min-h-11 bg-white border-2 border-black text-black font-bold text-sm shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-50 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingItem}
+                  className="flex-1 min-h-11 bg-success text-white border-2 border-black font-display font-black uppercase tracking-tight text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer rounded-none"
+                >
+                  {updatingItem ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Save Changes"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Categories Modal */}
+      {isManageCatOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200 text-black">
+            <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
+              <h3 className="text-black font-display font-black text-lg uppercase tracking-tight">Manage Categories</h3>
+              <button 
+                onClick={() => setIsManageCatOpen(false)}
+                className="text-black/60 hover:text-black font-black text-base cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List existing categories */}
+            <div className="max-h-60 overflow-y-auto mb-4 space-y-2 pr-1">
+              {categories.length === 0 ? (
+                <p className="text-black/60 text-xs font-bold uppercase text-center py-4">No categories created yet</p>
+              ) : (
+                categories.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between p-2 border-2 border-black bg-zinc-50">
+                    <span className="text-sm font-bold uppercase">{c.name}</span>
+                    <button
+                      onClick={() => handleDeleteCatSubmit(c.id)}
+                      className="text-danger hover:text-danger/80 font-black text-xs border border-black bg-white px-2 py-0.5 shadow-[1px_1px_0px_0px_#000] hover:translate-x-[0.5px] hover:translate-y-[0.5px] cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add new category form */}
+            <form onSubmit={handleCreateCatSubmit} className="space-y-3 pt-2 border-t-2 border-dashed border-black/25">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">New Category Name</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="e.g. Desserts"
+                    className="flex-1 min-h-10 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm placeholder:text-gray-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={creatingCat}
+                    className="px-4 min-h-10 bg-success text-white border-2 border-black font-display font-black uppercase tracking-tight text-xs shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center disabled:opacity-50 cursor-pointer rounded-none"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
             </form>
           </div>

@@ -11,17 +11,28 @@ const MOCK_CAFE = {
   has_seating: true,
 };
 
+const MOCK_CATEGORIES = [
+  { id: "cat-1", name: "Hot Beverages", sort_order: 1 },
+  { id: "cat-2", name: "Snacks", sort_order: 2 },
+];
+
 const MOCK_ITEMS = [
-  { id: "1", name: "Masala Chai", price: 30 },
-  { id: "2", name: "Vada Pav", price: 25 },
-  { id: "3", name: "Samosa (2 pcs)", price: 20 },
-  { id: "4", name: "Paneer Sandwich", price: 60 },
-  { id: "5", name: "Cold Coffee", price: 80 },
-  { id: "6", name: "Aloo Paratha", price: 70 },
-  { id: "7", name: "Pav Bhaji", price: 90 },
-  { id: "8", name: "Dahi Puri (6 pcs)", price: 55 },
+  { id: "1", name: "Masala Chai", price: 30, is_available: true, category_id: "cat-1" },
+  { id: "2", name: "Vada Pav", price: 25, is_available: true, category_id: "cat-2" },
+  { id: "3", name: "Samosa (2 pcs)", price: 20, is_available: true, category_id: "cat-2" },
+  { id: "4", name: "Paneer Sandwich", price: 60, is_available: true, category_id: "cat-2" },
+  { id: "5", name: "Cold Coffee", price: 80, is_available: true },
+  { id: "6", name: "Aloo Paratha", price: 70, is_available: true },
+  { id: "7", name: "Pav Bhaji", price: 90, is_available: true },
+  { id: "8", name: "Dahi Puri (6 pcs)", price: 55, is_available: true },
 ];
 
 export default function PreviewMenuPage() {
-  return <MenuClient cafe={MOCK_CAFE} items={MOCK_ITEMS} />;
+  return (
+    <MenuClient
+      cafe={MOCK_CAFE}
+      items={MOCK_ITEMS}
+      categories={MOCK_CATEGORIES}
+    />
+  );
 }
