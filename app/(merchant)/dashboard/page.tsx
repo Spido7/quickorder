@@ -729,10 +729,25 @@ export default function DashboardPage() {
               <div className="w-2 h-2 bg-success border border-black rounded-full" title="Alerts active" />
             )}
             <button
+              onClick={() => router.push("/dashboard/coupons")}
+              className="text-black font-black text-xs border-2 border-black bg-white px-2.5 py-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-colors flex items-center gap-1 rounded-none"
+            >
+              🎟️ Coupons
+            </button>
+            <button
               onClick={() => router.push("/dashboard/settings")}
               className="text-black font-black text-xs border-2 border-black bg-white px-2.5 py-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-colors flex items-center gap-1 rounded-none"
             >
               ⚙️ Settings
+            </button>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                router.push("/login");
+              }}
+              className="text-white font-black text-xs border-2 border-black bg-danger px-2.5 py-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-danger/80 transition-colors flex items-center gap-1 rounded-none"
+            >
+              🚪 Log Out
             </button>
           </div>
         </div>

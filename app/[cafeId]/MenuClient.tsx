@@ -437,21 +437,23 @@ function CheckoutSheet({
               </div>
 
               {/* Printable Invoice */}
-              <InvoiceReceipt order={placedOrder} businessName={cafe.business_name} />
+              <div id="receipt-print-area">
+                <InvoiceReceipt order={placedOrder} businessName={cafe.business_name} />
+              </div>
 
               {/* Action row */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 gap-3 pt-2">
                 <button
                   onClick={printReceipt}
-                  className="min-h-12 border-2 border-black bg-white text-black font-bold text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="min-h-12 border-2 border-black bg-accent text-white font-display font-black text-sm uppercase shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer tracking-tight"
                 >
-                  🖨️ Print Invoice
+                  📥 Download Receipt as PDF
                 </button>
                 <button
                   onClick={onClose}
-                  className="min-h-12 border-2 border-black bg-accent text-white font-bold text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+                  className="min-h-12 border-2 border-black bg-white text-black font-bold text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
                 >
-                  Back to Menu
+                  ← Back to Menu
                 </button>
               </div>
 
@@ -993,36 +995,60 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
       {/* Embedded Print stylesheet rules */}
       <style jsx global>{`
         @media print {
-          body, html, #__next, main, header, div {
-            background: white !important;
-            color: black !important;
-          }
-          /* Hide everything except the dialog or active print component */
+          /* Hide everything */
           body > * {
-            display: none !important;
+            visibility: hidden !important;
           }
-          /* Explicitly render only the history sheet contents or last receipt when printing */
-          [role="dialog"] {
-            display: block !important;
+
+          /* Then show only the receipt area */
+          #receipt-print-area,
+          #receipt-print-area * {
+            visibility: visible !important;
+          }
+
+          #receipt-print-area {
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
             width: 100% !important;
-            height: auto !important;
+            max-width: 400px !important;
+            margin: 0 auto !important;
+            padding: 16px !important;
+            background: white !important;
             border: none !important;
             box-shadow: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            background: white !important;
           }
-          [role="dialog"] > div {
-            display: block !important;
-            padding: 0 !important;
-            margin: 0 !important;
+
+          /* Clean receipt card for print */
+          #receipt-print-area > div {
+            border: 1px solid #ccc !important;
+            box-shadow: none !important;
+            padding: 20px !important;
           }
-          /* Hide inputs, close icons, backdrops, and action buttons during print */
-          .print\\:hidden, button, input, [role="switch"] {
+
+          /* Hide buttons, dialogs, backdrops during print */
+          .print\\:hidden,
+          [role="dialog"],
+          button,
+          input {
             display: none !important;
+          }
+
+          /* But keep the receipt content visible even inside dialogs */
+          #receipt-print-area {
+            display: block !important;
+          }
+
+          body, html {
+            background: white !important;
+            color: black !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          @page {
+            margin: 10mm;
+            size: auto;
           }
         }
       `}</style>
