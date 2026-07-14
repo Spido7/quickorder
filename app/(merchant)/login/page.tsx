@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -25,8 +25,18 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
       setLoading(false);
-    } else {
-      router.push("/setup");
+    } else if (data.user) {
+      const { data: profile } = await supabase
+        .from("cafe_profiles")
+        .select("cafe_id")
+        .eq("user_id", data.user.id)
+        .single();
+
+      if (profile) {
+        router.push("/dashboard");
+      } else {
+        router.push("/setup");
+      }
       router.refresh();
     }
   };
