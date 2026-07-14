@@ -154,10 +154,10 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
   }, [order.created_at]);
 
   const statusConfig = {
-    pending: { label: "⏳ Pending Payment / Cooking", color: "bg-warning text-black" },
-    preparing: { label: "👨‍🍳 Cooking in Kitchen", color: "bg-accent-dim text-white" },
+    pending: { label: "⏳ Pending Payment / Cooking", color: "bg-warning text-black border-black" },
+    preparing: { label: "👨‍🍳 Cooking in Kitchen", color: "bg-accent-dim text-white border-black" },
     done: { label: "✅ Ready / Served", color: "bg-success text-white border-success" },
-    cancelled: { label: "❌ Cancelled", color: "bg-danger text-white" },
+    cancelled: { label: "❌ Cancelled", color: "bg-danger text-white border-black" },
   };
 
   const status = statusConfig[order.order_status] || statusConfig.pending;
@@ -166,26 +166,26 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
     <div className="bg-white border-2 border-black p-5 shadow-[4px_4px_0px_0px_#000] text-black font-sans print:border-none print:shadow-none print:p-0 print:text-black">
       {/* Receipt Header */}
       <div className="text-center pb-4 border-b-2 border-dashed border-black">
-        <h3 className="font-display font-extrabold text-xl uppercase tracking-tight">{businessName}</h3>
-        <p className="text-xs uppercase font-bold tracking-widest text-gray-500 mt-0.5">Order Receipt</p>
+        <h3 className="font-display font-extrabold text-xl uppercase tracking-tight text-black">{businessName}</h3>
+        <p className="text-xs uppercase font-bold tracking-widest text-zinc-600 mt-0.5">Order Receipt</p>
       </div>
 
       {/* Meta Grid */}
-      <div className="py-4 space-y-1.5 text-xs font-semibold uppercase tracking-wider border-b-2 border-dashed border-black">
+      <div className="py-4 space-y-1.5 text-xs font-semibold uppercase tracking-wider border-b-2 border-dashed border-black text-black">
         <div className="flex justify-between">
-          <span className="text-gray-500">Order ID:</span>
-          <span>#{order.id.slice(0, 8)}</span>
+          <span className="text-zinc-600">Order ID:</span>
+          <span className="text-black">#{order.id.slice(0, 8)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Date:</span>
-          <span>{formattedDate}</span>
+          <span className="text-zinc-600">Date:</span>
+          <span className="text-black">{formattedDate}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Station:</span>
-          <span>{order.table_number === "0" || !order.table_number ? "Counter / Takeaway" : `Table ${order.table_number}`}</span>
+          <span className="text-zinc-600">Station:</span>
+          <span className="text-black">{order.table_number === "0" || !order.table_number ? "Counter / Takeaway" : `Table ${order.table_number}`}</span>
         </div>
         <div className="flex justify-between items-center mt-1">
-          <span className="text-gray-500">Status:</span>
+          <span className="text-zinc-600">Status:</span>
           <span className={`text-[10px] px-2 py-0.5 font-bold border-2 border-black ${status.color}`}>
             {status.label}
           </span>
@@ -193,16 +193,16 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
       </div>
 
       {/* Items List */}
-      <div className="py-4 border-b-2 border-dashed border-black">
-        <div className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2 flex justify-between">
+      <div className="py-4 border-b-2 border-dashed border-black text-black">
+        <div className="text-xs font-bold uppercase tracking-wider text-zinc-600 mb-2 flex justify-between">
           <span>Item</span>
           <span>Qty & Price</span>
         </div>
         <div className="space-y-2">
           {order.cart_items.map((item) => (
-            <div key={item.id} className="flex justify-between text-sm font-bold">
+            <div key={item.id} className="flex justify-between text-sm font-bold text-black">
               <span className="font-display">{item.name}</span>
-              <span className="font-mono">
+              <span className="font-mono text-black">
                 {item.quantity} × ₹{item.price} = ₹{item.price * item.quantity}
               </span>
             </div>
@@ -212,22 +212,22 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
 
       {/* Discount / Total Amount */}
       {order.discount_amount && Number(order.discount_amount) > 0 ? (
-        <div className="py-3 border-b-2 border-dashed border-black space-y-1 text-xs font-bold uppercase tracking-wider">
-          <div className="flex justify-between text-gray-500">
+        <div className="py-3 border-b-2 border-dashed border-black space-y-1 text-xs font-bold uppercase tracking-wider text-black">
+          <div className="flex justify-between text-zinc-600">
             <span>Subtotal</span>
-            <span className="font-mono">₹{(Number(order.total_amount) + Number(order.discount_amount)).toFixed(2)}</span>
+            <span className="font-mono text-black">₹{(Number(order.total_amount) + Number(order.discount_amount)).toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-success">
             <span>Discount Applied</span>
-            <span className="font-mono">-₹{Number(order.discount_amount).toFixed(2)}</span>
+            <span className="font-mono text-success">-₹{Number(order.discount_amount).toFixed(2)}</span>
           </div>
         </div>
       ) : null}
 
       {/* Total Amount */}
-      <div className="pt-4 flex justify-between items-center font-display font-black text-lg">
+      <div className="pt-4 flex justify-between items-center font-display font-black text-lg text-black">
         <span className="uppercase tracking-tight">Total Amount</span>
-        <span className="font-mono">₹{Number(order.total_amount).toFixed(2)}</span>
+        <span className="font-mono text-black">₹{Number(order.total_amount).toFixed(2)}</span>
       </div>
     </div>
   );
@@ -396,16 +396,12 @@ function CheckoutSheet({
     }
   }
 
-  const printReceipt = () => {
-    window.print();
-  };
-
   return (
     <>
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 print:hidden ${isOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       />
 
       {/* Sheet */}
@@ -413,20 +409,20 @@ function CheckoutSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Checkout"
-        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:hidden ${
+        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:fixed print:inset-0 print:bg-white print:border-none print:shadow-none print:w-full print:h-full print:translate-y-0 print:z-50 print:overflow-visible ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1">
+        <div className="flex justify-center pt-3 pb-1 print:hidden">
           <div className="w-12 h-1.5 bg-black rounded-none" />
         </div>
 
-        <div className="px-5 pb-8 pt-2 max-h-[85dvh] overflow-y-auto text-black">
+        <div className="px-5 pb-8 pt-2 max-h-[85dvh] overflow-y-auto text-black print:p-0 print:max-h-none print:overflow-visible">
           {step === "submitted" && placedOrder ? (
             // ── Success state (Invoice Receipt) ──
             <div className="py-4 space-y-5">
-              <div className="text-center">
+              <div className="text-center print:hidden">
                 <div className="w-14 h-14 bg-warning border-2 border-black shadow-[3px_3px_0px_0px_#000] flex items-center justify-center mx-auto mb-3">
                   <span className="text-2xl">⚡</span>
                 </div>
@@ -437,14 +433,14 @@ function CheckoutSheet({
               </div>
 
               {/* Printable Invoice */}
-              <div id="receipt-print-area">
+              <div id="receipt-print-area" className="print:block print:absolute print:inset-0 print:m-0 print:p-8 print:bg-white print:text-black print:z-50">
                 <InvoiceReceipt order={placedOrder} businessName={cafe.business_name} />
               </div>
 
               {/* Action row */}
-              <div className="grid grid-cols-1 gap-3 pt-2">
+              <div className="grid grid-cols-1 gap-3 pt-2 print:hidden">
                 <button
-                  onClick={printReceipt}
+                  onClick={() => typeof window !== 'undefined' && window.print()}
                   className="min-h-12 border-2 border-black bg-accent text-white font-display font-black text-sm uppercase shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer tracking-tight"
                 >
                   📥 Download Receipt as PDF
@@ -457,7 +453,7 @@ function CheckoutSheet({
                 </button>
               </div>
 
-              <p className="text-center text-xs font-bold text-gray-500 uppercase tracking-widest">
+              <p className="text-center text-xs font-bold text-gray-500 uppercase tracking-widest print:hidden">
                 If UPI app did not open,{" "}
                 <button
                   onClick={() => {
@@ -659,7 +655,7 @@ function OrderHistorySheet({
         role="dialog"
         aria-modal="true"
         aria-label="Order History"
-        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:absolute print:top-0 print:left-0 print:w-full print:bg-white print:border-none print:shadow-none ${
+        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:fixed print:inset-0 print:bg-white print:border-none print:shadow-none print:w-full print:h-full print:translate-y-0 print:z-50 print:overflow-visible ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -668,18 +664,18 @@ function OrderHistorySheet({
           <button onClick={onClose} className="font-black text-lg hover:text-accent cursor-pointer">✕</button>
         </div>
 
-        <div className="px-5 py-6 max-h-[75dvh] overflow-y-auto space-y-6 text-black print:p-0">
+        <div className="px-5 py-6 max-h-[75dvh] overflow-y-auto space-y-6 text-black print:p-0 print:max-h-none print:overflow-visible">
           {orders.length === 0 ? (
-            <div className="text-center py-10">
+            <div className="text-center py-10 print:hidden">
               <span className="text-4xl">🧾</span>
-              <p className="font-bold text-gray-500 mt-2 uppercase text-xs tracking-widest">No order history found</p>
+              <p className="font-bold text-zinc-600 mt-2 uppercase text-xs tracking-widest">No order history found</p>
             </div>
           ) : (
             orders.map((order) => (
-              <div key={order.id} className="print:break-inside-avoid">
+              <div key={order.id} className="print:break-inside-avoid print:mb-8">
                 <InvoiceReceipt order={order} businessName={businessName} />
                 <button
-                  onClick={() => window.print()}
+                  onClick={() => typeof window !== 'undefined' && window.print()}
                   className="w-full mt-3 min-h-10 border-2 border-black bg-white hover:bg-gray-50 text-black font-bold text-xs uppercase shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5 cursor-pointer print:hidden"
                 >
                   🖨️ Print Receipt
@@ -993,59 +989,14 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
       />
 
       {/* Embedded Print stylesheet rules */}
-      <style jsx global>{`
+      <style>{`
         @media print {
-          /* Hide everything */
-          body > * {
-            visibility: hidden !important;
-          }
-
-          /* Then show only the receipt area */
-          #receipt-print-area,
-          #receipt-print-area * {
-            visibility: visible !important;
-          }
-
-          #receipt-print-area {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            max-width: 400px !important;
-            margin: 0 auto !important;
-            padding: 16px !important;
-            background: white !important;
-            border: none !important;
-            box-shadow: none !important;
-          }
-
-          /* Clean receipt card for print */
-          #receipt-print-area > div {
-            border: 1px solid #ccc !important;
-            box-shadow: none !important;
-            padding: 20px !important;
-          }
-
-          /* Hide buttons, dialogs, backdrops during print */
-          .print\\:hidden,
-          [role="dialog"],
-          button,
-          input {
-            display: none !important;
-          }
-
-          /* But keep the receipt content visible even inside dialogs */
-          #receipt-print-area {
-            display: block !important;
-          }
-
           body, html {
             background: white !important;
             color: black !important;
             margin: 0 !important;
             padding: 0 !important;
           }
-
           @page {
             margin: 10mm;
             size: auto;
