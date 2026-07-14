@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
 import type { MenuItem, Order } from "@/lib/types";
-import { createCategory, deleteCategory } from "./actions";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -384,9 +383,26 @@ export default function DashboardPage() {
     if (!newCatName.trim() || !cafeId) return;
     setCreatingCat(true);
     try {
-      const result = await createCategory(cafeId, newCatName.trim());
-      if (result.success && result.category) {
-        setCategories((prev) => [...prev, result.category].sort((a, b) => a.sort_order - b.sort_order));
+      const nextSortOrder = categories.length > 0
+        ? Math.max(...categories.map(c => c.sort_order ?? 0)) + 1
+        : 0;
+
+      const { data: category, error: insertError } = await supabase
+        .from("menu_categories")
+        .insert({
+          cafe_id: cafeId,
+          name: newCatName.trim(),
+          sort_order: nextSortOrder,
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
+      if (category) {
+        setCategories((prev) => [...prev, category].sort((a, b) => a.sort_order - b.sort_order));
         setNewCatName("");
       }
     } catch (err: any) {
@@ -399,14 +415,20 @@ export default function DashboardPage() {
   const handleDeleteCatSubmit = async (categoryId: string) => {
     if (!confirm("Are you sure you want to delete this category? Items in this category will become Uncategorized.")) return;
     try {
-      const result = await deleteCategory(categoryId);
-      if (result.success) {
-        setCategories((prev) => prev.filter((c) => c.id !== categoryId));
-        // Also update local menuItems state
-        setMenuItems((prev) =>
-          prev.map((item) => (item.category_id === categoryId ? { ...item, category_id: null, category: "General" } : item))
-        );
+      const { error: deleteError } = await supabase
+        .from("menu_categories")
+        .delete()
+        .eq("id", categoryId);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
       }
+
+      setCategories((prev) => prev.filter((c) => c.id !== categoryId));
+      // Also update local menuItems state
+      setMenuItems((prev) =>
+        prev.map((item) => (item.category_id === categoryId ? { ...item, category_id: null, category: "General" } : item))
+      );
     } catch (err: any) {
       alert(err.message || "Failed to delete category");
     }
