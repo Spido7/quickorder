@@ -110,139 +110,186 @@ function MenuItemRow({ item, onToggle, onEdit }: {
   );
 }
 
-// ─── Incoming Order Ticket (Yellow) ──────────────────────────────────────────
-function IncomingTicket({ order, onAccept }: {
+// ─── Regular Order Card (Preparing / Done) ────────────────────────────────────
+function OrderCard({ order, onStatusChange }: {
   order: Order;
-  onAccept: (id: string) => Promise<void>;
+  onStatusChange: (id: string, status: Order["order_status"]) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [timeText, setTimeText] = useState("");
+  const [isOverTime, setIsOverTime] = useState(false);
+  const isCompleted = order.order_status === "done";
+  const [isExpanded, setIsExpanded] = useState(!isCompleted);
 
-  async function handleAccept() {
+  useEffect(() => {
+    const updateTime = () => {
+      const diffMs = Date.now() - new Date(order.created_at).getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) {
+        setTimeText(`${diffMins}m ago`);
+        setIsOverTime(false);
+      } else {
+        setTimeText(`${diffMins}m ago`);
+        setIsOverTime(diffMins >= 5);
+      }
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, [order.created_at]);
+
+  const handleAction = async (nextStatus: Order["order_status"]) => {
     setBusy(true);
-    await onAccept(order.id);
+    await onStatusChange(order.id, nextStatus);
     setBusy(false);
+  };
+
+  const orderId = order.id.slice(0, 4).toUpperCase();
+  const customerName = order.customer_name || "Guest";
+  const location = order.table_number === "0" 
+    ? "Counter" 
+    : order.table_number 
+      ? `Table ${order.table_number}` 
+      : "Takeaway";
+
+  if (isCompleted && !isExpanded) {
+    return (
+      <div 
+        onClick={() => setIsExpanded(true)}
+        className="border-4 border-black bg-zinc-50 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black rounded-none flex items-center justify-between cursor-pointer hover:bg-zinc-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all select-none"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-black uppercase bg-zinc-200 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+            {location}
+          </span>
+          <h3 className="font-display font-black text-black text-sm uppercase tracking-tight">
+            #ORD-{orderId}
+          </h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="font-display font-black text-black text-base">₹{order.total_amount}</p>
+          <span className="text-black font-black text-xs border-2 border-black bg-white px-2 py-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
+            EXPAND ▼
+          </span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="relative border-3 border-black bg-warning/20 p-4 shadow-[6px_6px_0px_0px_#000] text-black rounded-none">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-lg">🔔</span>
-            <span className="font-display font-black text-black text-lg leading-tight uppercase tracking-tight">
-              {order.table_number === "0" ? "Counter" : order.table_number ? `Table ${order.table_number}` : "Takeaway"}
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-warning text-black border border-black shadow-[1px_1px_0px_0px_#000]">
-              New
-            </span>
-          </div>
-          <p className="text-black/60 text-xs font-bold uppercase tracking-wider">Just arrived</p>
-        </div>
-        <p className="font-display font-black text-black text-2xl shrink-0">₹{order.total_amount}</p>
-      </div>
-
-      {/* Divider */}
-      <div className="border-t-2 border-black my-3" />
-
-      {/* Cart items */}
-      <div className="space-y-2 mb-4">
-        {order.cart_items.map((item) => (
-          <div key={item.id} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 border border-black bg-warning text-black text-xs font-black flex items-center justify-center shrink-0 shadow-[1px_1px_0px_0px_#000]">
-                {item.quantity}×
+    <div 
+      className={`border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black rounded-none flex flex-col justify-between h-full transition-all ${
+        isCompleted 
+          ? "bg-zinc-50/90 cursor-pointer hover:bg-zinc-50 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none" 
+          : "bg-white"
+      }`}
+      onClick={isCompleted ? () => setIsExpanded(false) : undefined}
+    >
+      <div>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h3 className="font-display font-black text-black text-sm sm:text-base uppercase tracking-tight">
+              #ORD-{orderId} - {customerName}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] font-black uppercase bg-zinc-100 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                {location}
               </span>
-              <span className="text-black text-sm font-bold">{item.name}</span>
+              <span className={`text-xs font-bold ${isOverTime ? 'text-red-600 font-black' : 'text-black/60'}`}>
+                {timeText}
+              </span>
             </div>
-            <span className="text-black/70 text-sm font-bold">₹{item.price * item.quantity}</span>
           </div>
-        ))}
-      </div>
-
-      {/* Accept button */}
-      <button
-        onClick={handleAccept}
-        disabled={busy}
-        className="w-full min-h-14 bg-success text-white font-display font-black uppercase tracking-tight text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
-      >
-        {busy ? (
-          <><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Accepting…</>
-        ) : (
-          <>✅ Accept &amp; Cook</>
-        )}
-      </button>
-    </div>
-  );
-}
-
-// ─── Regular Order Card (Preparing / Done) ────────────────────────────────────
-const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-warning/20 text-black border-black",
-  preparing: "bg-accent-dim/20 text-accent-dim border-black",
-  done: "bg-success/20 text-success border-black",
-  cancelled: "bg-danger/20 text-danger border-black",
-};
-const STATUS_LABELS: Record<string, string> = {
-  pending: "🔔 New", preparing: "🍳 Preparing", done: "✅ Done", cancelled: "✗ Cancelled",
-};
-
-function OrderCard({ order, onStatusChange }: {
-  order: Order; onStatusChange: (id: string, status: Order["order_status"]) => void;
-}) {
-  const timeAgo = useCallback(() => {
-    const diff = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
-    if (diff < 1) return "just now";
-    if (diff < 60) return `${diff}m ago`;
-    return `${Math.floor(diff / 60)}h ago`;
-  }, [order.created_at]);
-
-  const nextStatus: Record<string, Order["order_status"]> = { preparing: "done" };
-
-  return (
-    <div className="border-2 border-black bg-white p-4 shadow-[4px_4px_0px_0px_#000] text-black rounded-none">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-black text-black text-base uppercase tracking-tight">
-              {order.table_number === "0" ? "Counter" : order.table_number ? `Table ${order.table_number}` : "Takeaway"}
-            </span>
-            <span className={`text-xs px-2 py-0.5 border border-black font-black shadow-[1px_1px_0px_0px_#000] ${STATUS_STYLES[order.order_status]}`}>
-              {STATUS_LABELS[order.order_status]}
-            </span>
+          <div className="flex items-center gap-3 shrink-0">
+            <p className="font-display font-black text-black text-xl">₹{order.total_amount}</p>
+            {isCompleted && (
+              <span className="text-black font-black text-xs border-2 border-black bg-white px-2 py-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0 select-none">
+                COLLAPSE ▲
+              </span>
+            )}
           </div>
-          <p className="text-black/60 text-xs font-bold mt-0.5">{timeAgo()}</p>
         </div>
-        <p className="font-display font-black text-accent text-lg shrink-0">₹{order.total_amount}</p>
+
+        {/* Divider */}
+        <div className="border-t-2 border-black my-3" />
+
+        {/* Cart items list in CSS Grid */}
+        <div className="space-y-2 mb-4">
+          {order.cart_items.map((item) => (
+            <div key={item.id} className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
+              {/* Column 1: Qty with solid yellow background, bold text, no internal borders */}
+              <span className="w-7 h-7 bg-warning text-black text-xs font-black flex items-center justify-center shrink-0">
+                {item.quantity}x
+              </span>
+              {/* Column 2: Item name, left-aligned, bold text */}
+              <span className="text-black text-sm font-black text-left uppercase truncate">
+                {item.name}
+              </span>
+              {/* Column 3: Price, right-aligned, standard font */}
+              <span className="text-black text-sm font-mono font-bold text-right shrink-0">
+                ₹{item.price * item.quantity}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="space-y-1 mb-4">
-        {order.cart_items.map((item) => (
-          <div key={item.id} className="flex justify-between text-sm font-bold">
-            <span className="text-black/80">{item.name}</span>
-            <span className="text-black/40">×{item.quantity}</span>
+
+      {/* Action button / Badge */}
+      <div className="mt-auto pt-2" onClick={(e) => {
+        if (isCompleted) {
+          e.stopPropagation();
+        }
+      }}>
+        {order.order_status === "pending" && (
+          <button
+            onClick={() => handleAction("preparing")}
+            disabled={busy}
+            className="w-full min-h-12 bg-green-800 text-white font-display font-black uppercase tracking-tight text-sm border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {busy ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>✅ ACCEPT &amp; COOK</>
+            )}
+          </button>
+        )}
+
+        {order.order_status === "preparing" && (
+          <button
+            onClick={() => handleAction("done")}
+            disabled={busy}
+            className="w-full min-h-12 bg-blue-500 text-black font-display font-black uppercase tracking-tight text-sm border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {busy ? (
+              <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>🚀 MARK AS READY</>
+            )}
+          </button>
+        )}
+
+        {order.order_status === "done" && (
+          <div className="w-full min-h-10 bg-zinc-100 text-black font-display font-black uppercase tracking-tight text-sm border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 select-none">
+            ☑️ Done
           </div>
-        ))}
+        )}
       </div>
-      {nextStatus[order.order_status] && (
-        <button
-          onClick={() => onStatusChange(order.id, nextStatus[order.order_status])}
-          className="w-full min-h-11 bg-accent-dim text-white border-2 border-black font-display font-black uppercase text-sm shadow-[3px_3px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer"
-        >
-          Mark as Done ✓
-        </button>
-      )}
     </div>
   );
 }
 
 // ─── Tab Bar ──────────────────────────────────────────────────────────────────
 type Tab = "orders" | "menu";
+type SortOption = "default" | "newest" | "oldest" | "price-desc" | "price-asc";
 
 function TabBar({ active, onChange, pendingCount }: {
   active: Tab; onChange: (t: Tab) => void; pendingCount: number;
 }) {
   return (
-    <div className="no-print flex border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] rounded-none overflow-hidden mx-4 mb-4 p-0">
+    <div className="no-print flex border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] rounded-none overflow-hidden mx-4 md:mx-6 mb-4 p-0">
       {(["orders", "menu"] as Tab[]).map((t) => (
         <button key={t} onClick={() => onChange(t)}
           className={`flex-1 min-h-11 font-display font-black uppercase text-sm border-r-2 border-black last:border-r-0 rounded-none relative transition-colors cursor-pointer ${
@@ -265,6 +312,8 @@ function TabBar({ active, onChange, pendingCount }: {
 export default function DashboardClient() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("orders");
+  const [subTab, setSubTab] = useState<"incoming" | "cooking" | "completed">("incoming");
+  const [sortBy, setSortBy] = useState<SortOption>("default");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
@@ -312,6 +361,20 @@ export default function DashboardClient() {
   const [supabase] = useState(() => createClient());
 
   const { unlocked, unlock, play } = useAudioAlert("/bell.mp3");
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  const handleToggleSound = () => {
+    const nextVal = !soundEnabled;
+    setSoundEnabled(nextVal);
+    if (nextVal && !unlocked) {
+      unlock();
+    }
+  };
+
 
 
   useEffect(() => {
@@ -551,7 +614,9 @@ export default function DashboardClient() {
           // Prepend to top so it appears first in the list
           setOrders((prev) => [newOrder, ...prev]);
           // 🔔 Play the bell
-          play();
+          if (soundEnabledRef.current) {
+            play();
+          }
         }
       )
       .on(
@@ -604,104 +669,41 @@ export default function DashboardClient() {
   }
 
   // ── Derived state ────────────────────────────────────────────────────────────
-  const incomingOrders = orders.filter((o) => o.order_status === "pending");
-  const cookingOrders = orders.filter((o) => o.order_status === "preparing");
-  const doneOrders = orders.filter((o) => o.order_status === "done");
+  const rawIncoming = orders.filter((o) => o.order_status === "pending");
+  const rawCooking = orders.filter((o) => o.order_status === "preparing");
+  const rawDone = orders.filter((o) => o.order_status === "done");
 
-  const renderQRCodeSection = () => {
-    return cafeId ? (
-      <div className="bg-white border-2 border-black rounded-none shadow-[4px_4px_0px_0px_#000] mb-2 no-print overflow-hidden">
-        {/* Accordion Trigger */}
-        <button
-          type="button"
-          onClick={() => setIsQrExpanded(!isQrExpanded)}
-          className="w-full flex items-center justify-between p-4 bg-white hover:bg-zinc-50 transition-colors text-left focus:outline-none cursor-pointer"
-        >
-          <div>
-            <h3 className="text-black font-display font-black text-sm sm:text-base uppercase tracking-tight leading-none">
-              🖨️ QR Code Generator
-            </h3>
-            <p className="text-black/60 text-[10px] sm:text-xs mt-1.5 font-bold uppercase tracking-wider">
-              {isQrExpanded ? "Click to collapse" : "Click to expand & generate table-specific QR codes"}
-            </p>
-          </div>
-          <span className="text-black font-black text-xs border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000] ml-2 select-none">
-            {isQrExpanded ? "COLLAPSE ▲" : "EXPAND ▼"}
-          </span>
-        </button>
+  const sortOrders = (ordersList: Order[], criteria: SortOption, column: "incoming" | "cooking" | "completed") => {
+    return [...ordersList].sort((a, b) => {
+      let activeCriteria = criteria;
+      
+      if (criteria === "default") {
+        if (column === "incoming" || column === "cooking") {
+          activeCriteria = "oldest";
+        } else {
+          activeCriteria = "newest";
+        }
+      }
 
-        {/* Collapsible Content */}
-        {isQrExpanded && (
-          <div className="border-t-2 border-black p-4 bg-[#fdfbf7] space-y-4 animate-in slide-in-from-top-2 duration-200">
-            {/* Selector */}
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-wider text-black mb-1">Select Station</label>
-              <select
-                value={selectedTable}
-                onChange={(e) => setSelectedTable(e.target.value)}
-                className="w-full h-11 px-2.5 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm cursor-pointer"
-              >
-                <option value="0">Counter (Table 0)</option>
-                {cafeDetails?.has_seating && cafeDetails.table_count &&
-                  Array.from({ length: cafeDetails.table_count }, (_, i) => (
-                    <option key={i + 1} value={String(i + 1)}>Table {i + 1}</option>
-                  ))
-                }
-              </select>
-            </div>
-
-            {/* QR Display */}
-            <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-black/35 bg-white space-y-4">
-              <div id="qr-container" className="bg-white p-2.5 border-2 border-black rounded-none shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                <QRCode
-                  value={`${origin || "https://quickorder.pages.dev"}/${cafeId}?table=${selectedTable}`}
-                  size={120}
-                  level="H"
-                />
-              </div>
-              
-              <div className="text-center w-full space-y-3">
-                <div>
-                  <span className="text-[10px] font-black uppercase text-black bg-warning/20 border border-black/30 px-3 py-1 inline-block">
-                    🎯 Active: {selectedTable === "0" ? "Counter / Table 0" : `Table ${selectedTable}`}
-                  </span>
-                </div>
-                
-                <div className="flex flex-col gap-2 w-full pt-1">
-                  <button
-                    onClick={() => {
-                      setPrintMode("single");
-                      setTimeout(() => window.print(), 100);
-                    }}
-                    className="w-full py-2.5 bg-white border-2 border-black text-black hover:bg-zinc-50 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    🖨️ Print Selected
-                  </button>
-                  {cafeDetails?.has_seating && (cafeDetails.table_count ?? 0) > 0 && (
-                    <button
-                      onClick={() => {
-                        setPrintMode("all");
-                        setTimeout(() => window.print(), 100);
-                      }}
-                      className="w-full py-2.5 bg-warning text-black border-2 border-black hover:bg-warning/90 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                    >
-                      🖨️ Print All ({ (cafeDetails.table_count ?? 0) + 1 } QRs)
-                    </button>
-                  )}
-                  <button
-                    onClick={downloadQRCode}
-                    className="w-full py-2.5 bg-white border-2 border-black text-black hover:bg-zinc-50 text-xs font-black uppercase shadow-[2px_2px_0px_0px_#000] transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    📥 Download SVG
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    ) : null;
+      if (activeCriteria === "newest") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      if (activeCriteria === "oldest") {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (activeCriteria === "price-desc") {
+        return b.total_amount - a.total_amount;
+      }
+      if (activeCriteria === "price-asc") {
+        return a.total_amount - b.total_amount;
+      }
+      return 0;
+    });
   };
+
+  const incomingOrders = sortOrders(rawIncoming, sortBy, "incoming");
+  const cookingOrders = sortOrders(rawCooking, sortBy, "cooking");
+  const doneOrders = sortOrders(rawDone, sortBy, "completed");
 
   if (!cafeId) {
     return (
@@ -712,172 +714,201 @@ export default function DashboardClient() {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col bg-background w-full max-w-md xl:max-w-7xl mx-auto text-black">
-
-      {/* ── Audio unlock banner ── */}
-      {!unlocked && (
-        <button
-          onClick={unlock}
-          className="no-print w-full bg-warning/20 border-b-2 border-black px-4 py-3 flex items-center gap-3 text-left transition-colors hover:bg-warning/35 cursor-pointer"
-        >
-          <span className="text-xl shrink-0">🔔</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-black text-sm font-black uppercase tracking-tight leading-tight">Enable order alerts</p>
-            <p className="text-black/60 text-xs mt-0.5 font-bold">Tap to hear a bell when new orders arrive</p>
-          </div>
-          <span className="text-black text-xs font-black uppercase shrink-0 border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000]">
-            Tap
-          </span>
-        </button>
-      )}
+    <div className="min-h-dvh flex flex-col bg-background w-full max-w-7xl xl:max-w-[1440px] mx-auto text-black">
 
       {/* ── Header ── */}
       <header className="no-print sticky top-0 z-10 bg-white border-b-2 border-black">
-        <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between px-4 md:px-6 py-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-black flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#ff6b35]">
+            <div className="w-8 h-8 bg-black flex items-center justify-center border border-black shadow-[2px_2px_0px_0px_#ff6b35] shrink-0">
               <span className="text-white text-sm font-black">Q</span>
             </div>
             <div>
-              <p className="font-display font-black text-black text-sm leading-tight uppercase tracking-tight">Dashboard</p>
-              <p className="text-black/60 text-xs font-bold uppercase">
+              <p className="font-display font-black text-black text-sm leading-tight uppercase tracking-tight truncate max-w-[140px] sm:max-w-[200px]">
+                {cafeDetails?.business_name || "Dashboard"}
+              </p>
+              <p className="text-black/60 text-[10px] sm:text-xs font-bold uppercase whitespace-nowrap">
                 {incomingOrders.length > 0
                   ? `${incomingOrders.length} order${incomingOrders.length > 1 ? "s" : ""} waiting`
-                  : unlocked ? "Listening for orders 👂" : "All caught up 👍"}
+                  : unlocked && soundEnabled ? "Listening for orders 👂" : "All caught up 👍"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap gap-y-2 justify-end">
             {incomingOrders.length > 0 && (
               <div className="w-2.5 h-2.5 bg-warning border border-black rounded-full animate-ping" />
             )}
-            {unlocked && (
+            {soundEnabled && unlocked && (
               <div className="w-2 h-2 bg-success border border-black rounded-full" title="Alerts active" />
             )}
             <button
-              onClick={() => router.push("/dashboard/coupons")}
-              className="text-black font-black text-xs border-2 border-black bg-white px-2.5 py-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-colors flex items-center gap-1 rounded-none"
+              onClick={handleToggleSound}
+              className={`font-black text-xs border-2 border-black px-2 py-1.5 sm:px-3 shadow-[2px_2px_0px_0px_#000] cursor-pointer transition-all rounded-none flex items-center justify-center min-h-[36px] ${
+                soundEnabled ? "bg-warning text-black" : "bg-zinc-100 text-black/60"
+              }`}
             >
-              🎟️ Coupons
+              {soundEnabled ? (
+                <>🔔 <span className="hidden sm:inline">Sound: </span>ON</>
+              ) : (
+                <>🔕 <span className="hidden sm:inline">Sound: </span>OFF</>
+              )}
+            </button>
+            <button
+              onClick={() => router.push("/dashboard/coupons")}
+              className="text-black font-black text-xs border-2 border-black bg-white px-2 py-1.5 sm:px-3 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-all flex items-center justify-center gap-1 rounded-none min-h-[36px]"
+            >
+              <span>🎟️</span>
+              <span className="hidden sm:inline">Coupons</span>
             </button>
             <button
               onClick={() => router.push("/dashboard/settings")}
-              className="text-black font-black text-xs border-2 border-black bg-white px-2.5 py-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-colors flex items-center gap-1 rounded-none"
+              className="text-black font-black text-xs border-2 border-black bg-white px-2 py-1.5 sm:px-3 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-all flex items-center justify-center gap-1 rounded-none min-h-[36px]"
             >
-              ⚙️ Settings
-            </button>
-            <button
-              onClick={async () => {
-                await supabase.auth.signOut();
-                router.push("/login");
-              }}
-              className="text-white font-black text-xs border-2 border-black bg-danger px-2.5 py-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-danger/80 transition-colors flex items-center gap-1 rounded-none"
-            >
-              🚪 Log Out
+              <span>⚙️</span>
+              <span className="hidden sm:inline">Settings</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* ── Stats strip ── */}
-      <div className="no-print flex gap-3 px-4 py-3 xl:hidden">
-        <div className="flex-1 bg-white border-2 border-black rounded-none p-3 shadow-[3px_3px_0px_0px_#000]">
-          <p className="text-black/60 text-xs font-black uppercase">Incoming</p>
-          <p className="text-black font-display font-black text-xl">{incomingOrders.length}</p>
-        </div>
-        <div className="flex-1 bg-white border-2 border-black rounded-none p-3 shadow-[3px_3px_0px_0px_#000]">
-          <p className="text-black/60 text-xs font-black uppercase">Cooking</p>
-          <p className="text-black font-display font-black text-xl">{cookingOrders.length}</p>
-        </div>
-        <div className="flex-1 bg-white border-2 border-black rounded-none p-3 shadow-[3px_3px_0px_0px_#000]">
-          <p className="text-black/60 text-xs font-black uppercase">Done today</p>
-          <p className="text-black font-display font-black text-xl">{doneOrders.length}</p>
-        </div>
+      {/* ── Stats strip / Mobile column switcher ── */}
+      <div className="no-print flex gap-3 px-4 md:px-6 py-3 lg:hidden">
+        <button
+          onClick={() => setSubTab("incoming")}
+          className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
+            subTab === "incoming"
+              ? "bg-warning text-black font-black"
+              : "bg-white text-black hover:bg-zinc-50"
+          }`}
+        >
+          <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "incoming" ? "text-black" : "text-black/60"}`}>Incoming</p>
+          <p className="font-display font-black text-xl mt-0.5">{incomingOrders.length}</p>
+        </button>
+        <button
+          onClick={() => setSubTab("cooking")}
+          className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
+            subTab === "cooking"
+              ? "bg-blue-500 text-black font-black"
+              : "bg-white text-black hover:bg-zinc-50"
+          }`}
+        >
+          <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "cooking" ? "text-black" : "text-black/60"}`}>Cooking</p>
+          <p className="font-display font-black text-xl mt-0.5">{cookingOrders.length}</p>
+        </button>
+        <button
+          onClick={() => setSubTab("completed")}
+          className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
+            subTab === "completed"
+              ? "bg-green-800 text-white font-black"
+              : "bg-white text-black hover:bg-zinc-50"
+          }`}
+        >
+          <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "completed" ? "text-white" : "text-black/60"}`}>Completed</p>
+          <p className={`font-display font-black text-xl mt-0.5 ${subTab === "completed" ? "text-white" : "text-black"}`}>{doneOrders.length}</p>
+        </button>
       </div>
 
       {/* ── Tabs ── */}
       <TabBar active={tab} onChange={setTab} pendingCount={incomingOrders.length} />
 
       {/* ── Content ── */}
-      <main className="no-print flex-1 overflow-y-auto pb-6">
-{tab === "orders" && (
-          <div className="px-4 flex flex-col xl:grid xl:grid-cols-3 gap-6 pt-2">
-
-            {/* Mobile QR */}
-            <div className="xl:hidden">
-              {renderQRCodeSection()}
+      <main className="no-print flex-1 overflow-y-auto pb-6 px-4 md:px-6">
+        {tab === "orders" && (
+          <>
+            {/* Sort Controls */}
+            <div className="flex justify-between items-center mb-4 px-1">
+              <p className="text-black/60 text-xs font-bold uppercase tracking-wider">
+                {orders.length} active orders
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-black/65 text-xs font-black uppercase">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="bg-white border-2 border-black font-display font-black text-xs px-2 py-1 shadow-[2px_2px_0px_0px_#000] focus:outline-none cursor-pointer rounded-none"
+                >
+                  <option value="default">Default (Smart) ⚡</option>
+                  <option value="newest">Newest First ⏰</option>
+                  <option value="oldest">Oldest First ⏳</option>
+                  <option value="price-desc">Price: High to Low 📈</option>
+                  <option value="price-asc">Price: Low to High 📉</option>
+                </select>
+              </div>
             </div>
 
-            {/* Column 1: Incoming */}
-            <div className="space-y-3 xl:border-r-2 xl:border-black xl:pr-6">
-              <div className="hidden xl:flex justify-between items-end mb-4 px-1">
-                <p className="text-black font-black text-xs uppercase tracking-widest">🔔 Incoming</p>
-                <p className="text-black font-display font-black text-2xl leading-none">{incomingOrders.length}</p>
-              </div>
-              {incomingOrders.length > 0 && (
-                <>
-                  <p className="xl:hidden text-black font-black text-xs uppercase tracking-widest px-1 pt-1">
-                    🔔 Incoming Orders
-                  </p>
-                  {incomingOrders.map((order) => (
-                    <IncomingTicket key={order.id} order={order} onAccept={handleAcceptOrder} />
-                  ))}
-                </>
-              )}
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
 
-            {/* Column 2: Cooking */}
-            <div className="space-y-3 xl:border-r-2 xl:border-black xl:pr-6">
-              <div className="hidden xl:flex justify-between items-end mb-4 px-1">
-                <p className="text-black font-black text-xs uppercase tracking-widest">🍳 Cooking</p>
-                <p className="text-black font-display font-black text-2xl leading-none">{cookingOrders.length}</p>
-              </div>
-              {cookingOrders.length > 0 && (
-                <>
-                  {incomingOrders.length > 0 && (
-                    <p className="xl:hidden text-black font-black text-xs uppercase tracking-widest px-1 pt-2">
-                      🍳 In the Kitchen
-                    </p>
-                  )}
-                  {cookingOrders.map((order) => (
-                    <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
-                  ))}
-                </>
-              )}
-              {incomingOrders.length === 0 && cookingOrders.length === 0 && (
-                <div className="py-16 text-center border-2 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_#000]">
-                  <span className="text-5xl">🎉</span>
-                  <p className="text-black font-black uppercase tracking-tight mt-4">No active orders</p>
-                  <p className="text-black/60 text-sm font-bold mt-1">
-                    New orders will appear here instantly.
-                  </p>
+              {/* Column 1: Incoming */}
+              <div className={`space-y-4 ${subTab === "incoming" ? "block" : "hidden lg:block"}`}>
+                <div className="flex justify-between items-center mb-4 px-1 pb-2 border-b-4 border-black">
+                  <p className="text-black font-black text-sm uppercase tracking-widest">🔔 Incoming</p>
+                  <span className="text-white bg-black font-display font-black text-base px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    {incomingOrders.length}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            {/* Column 3: Completed & Desktop QR */}
-            <div className="space-y-6">
-              <div className="hidden xl:block">
-                {renderQRCodeSection()}
-              </div>
-              {doneOrders.length > 0 && (
-                <div className="pt-2">
-                  <div className="flex justify-between items-end mb-3 px-1">
-                    <p className="text-black/65 font-black text-xs uppercase tracking-widest">Completed</p>
-                    <p className="hidden xl:block text-black/65 font-display font-black text-2xl leading-none">{doneOrders.length}</p>
-                  </div>
-                  <div className="space-y-3">
-                    {doneOrders.slice(0, 5).map((order) => (
+                {incomingOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {incomingOrders.map((order) => (
                       <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
                     ))}
                   </div>
+                ) : (
+                  <div className="py-12 text-center border-4 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <span className="text-4xl">😴</span>
+                    <p className="text-black font-black uppercase tracking-tight mt-3 text-xs">No pending orders</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Column 2: Cooking */}
+              <div className={`space-y-4 ${subTab === "cooking" ? "block" : "hidden lg:block"}`}>
+                <div className="flex justify-between items-center mb-4 px-1 pb-2 border-b-4 border-black">
+                  <p className="text-black font-black text-sm uppercase tracking-widest">🍳 Cooking</p>
+                  <span className="text-white bg-black font-display font-black text-base px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    {cookingOrders.length}
+                  </span>
                 </div>
-              )}
+                {cookingOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {cookingOrders.map((order) => (
+                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center border-4 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <span className="text-4xl">🍳</span>
+                    <p className="text-black font-black uppercase tracking-tight mt-3 text-xs">Nothing cooking</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Column 3: Completed */}
+              <div className={`space-y-4 ${subTab === "completed" ? "block" : "hidden lg:block"}`}>
+                <div className="flex justify-between items-center mb-4 px-1 pb-2 border-b-4 border-black">
+                  <p className="text-black/65 font-black text-sm uppercase tracking-widest">Completed</p>
+                  <span className="text-white bg-black font-display font-black text-base px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    {doneOrders.length}
+                  </span>
+                </div>
+                {doneOrders.length > 0 ? (
+                  <div className="space-y-4">
+                    {doneOrders.slice(0, 8).map((order) => (
+                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center border-4 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <span className="text-4xl">💤</span>
+                    <p className="text-black/60 font-black uppercase tracking-tight mt-3 text-xs">No orders completed</p>
+                  </div>
+                )}
+              </div>
+
             </div>
-          </div>
+          </>
         )}
         {tab === "menu" && (
-          <div className="px-4 text-black">
+          <div className="text-black">
             {loadingMenu && (
               <div className="py-8 flex justify-center">
                 <span className="w-6 h-6 border-2 border-black border-t-accent rounded-full animate-spin" />

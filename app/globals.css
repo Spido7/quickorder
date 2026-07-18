@@ -113,4 +113,127 @@ body {
   transform: scale(1) translateY(0);
 }
 
+/* ── Dark Mode Overrides ── */
+html.dark {
+  --background: #0f0f11;
+  --surface: #18181c;
+  --surface-elevated: #232329;
+  --border: #ffffff;
+  --border-strong: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --accent: #ff4d4d;
+  --accent-dim: #2ec4b6;
+  --success: #06d6a0;
+  --success-dim: #02231c;
+  --danger: #ff5a5f;
+  --danger-dim: #32080a;
+  --warning: #fcbf49;
+}
+
+html.dark body {
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+html.dark .bg-white {
+  background-color: var(--surface) !important;
+}
+
+html.dark .bg-zinc-50,
+html.dark .bg-zinc-100,
+html.dark .bg-zinc-200,
+html.dark .bg-zinc-300,
+html.dark .bg-zinc-50\/40,
+html.dark .bg-zinc-100\/40 {
+  background-color: var(--surface-elevated) !important;
+}
+
+html.dark .hover\:bg-zinc-50:hover,
+html.dark .hover\:bg-zinc-100:hover,
+html.dark .hover\:bg-zinc-200:hover {
+  background-color: var(--surface-elevated) !important;
+}
+
+html.dark .text-black {
+  color: var(--text-primary) !important;
+}
+
+html.dark .text-black\/40 {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+html.dark .text-black\/50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+html.dark .text-black\/60 {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+html.dark .text-black\/75 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+html.dark .text-black\/80 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.dark .border-black {
+  border-color: var(--border) !important;
+}
+
+html.dark .border-black\/20 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html.dark .border-black\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Neo-brutalist shadows in dark mode become white */
+html.dark .shadow-\[1px_1px_0px_0px_\#000\] {
+  box-shadow: 1px 1px 0px 0px var(--border) !important;
+}
+html.dark .shadow-\[2px_2px_0px_0px_\#000\] {
+  box-shadow: 2px 2px 0px 0px var(--border) !important;
+}
+html.dark .shadow-\[3px_3px_0px_0px_\#000\] {
+  box-shadow: 3px 3px 0px 0px var(--border) !important;
+}
+html.dark .shadow-\[4px_4px_0px_0px_\#000\] {
+  box-shadow: 4px 4px 0px 0px var(--border) !important;
+}
+html.dark .shadow-\[5px_5px_0px_0px_\#000\] {
+  box-shadow: 5px 5px 0px 0px var(--border) !important;
+}
+html.dark .shadow-\[6px_6px_0px_0px_\#000\] {
+  box-shadow: 6px 6px 0px 0px var(--border) !important;
+}
+
+html.dark .shadow-\[2px_2px_0px_0px_rgba\(0\,0\,0\,1\)\] {
+  box-shadow: 2px 2px 0px 0px var(--border) !important;
+}
+html.dark .shadow-\[3px_3px_0px_0px_rgba\(0\,0\,0\,1\)\] {
+  box-shadow: 3px 3px 0px 0px var(--border) !important;
+}
+html.dark .shadow-\[4px_4px_0px_0px_rgba\(0\,0\,0\,1\)\] {
+  box-shadow: 4px 4px 0px 0px var(--border) !important;
+}
+
+/* Inactive button active states */
+html.dark .active\:shadow-none {
+  box-shadow: none !important;
+}
+
+/* Ensure inputs/selects text is readable */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color: var(--text-primary) !important;
+  background-color: var(--surface) !important;
+}
+
+/* Keep QR container white for contrast scan support */
+html.dark #qr-container.bg-white {
+  background-color: #ffffff !important;
+}
+
 
