@@ -696,6 +696,7 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
   const [historyOpen, setHistoryOpen] = useState(false);
   const [placedOrders, setPlacedOrders] = useState<Order[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>("All");
 
   // 1. Initial cart local caching load
   useEffect(() => {
@@ -837,12 +838,18 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
     setCheckoutOpen(false);
   }
 
+  const filteredItems = useMemo(() => {
+    return activeCategory === "All"
+      ? items
+      : items.filter((item) => item.category_id === activeCategory);
+  }, [activeCategory, items]);
+
   return (
     <div className="min-h-dvh flex flex-col bg-background max-w-md mx-auto border-x-4 border-black print:border-none print:bg-white print:max-w-none print:h-auto">
       {/* Printable Area Wrapper: Hide regular elements when printing */}
       
       {/* ── Header ── */}
-      <header className="sticky top-0 z-10 bg-accent text-white border-b-4 border-black shadow-[0_4px_0_0_#000] px-5 py-4 print:hidden">
+      <header className="relative z-10 bg-accent text-white border-b-4 border-black shadow-[0_4px_0_0_#000] px-5 py-4 print:hidden">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display font-black text-lg uppercase tracking-tight leading-none">
@@ -862,6 +869,39 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
           )}
         </div>
       </header>
+
+      {/* ── Sticky Category Bar ── */}
+      {items.length > 0 && (
+        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm py-4 border-b-4 border-black overflow-x-auto whitespace-nowrap hide-scrollbar px-4 flex gap-3 print:hidden">
+          <button
+            onClick={() => setActiveCategory("All")}
+            className={`border-4 border-black px-4 py-2 text-sm font-black uppercase transition-all cursor-pointer rounded-none ${
+              activeCategory === "All"
+                ? "bg-warning text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5"
+                : "bg-white text-black hover:bg-zinc-100"
+            }`}
+          >
+            All
+          </button>
+          {categories.map((category) => {
+            const hasItems = items.some((item) => item.category_id === category.id);
+            if (!hasItems) return null;
+            return (
+              <button
+                key={category.id}
+                onClick={() => setActiveCategory(category.id)}
+                className={`border-4 border-black px-4 py-2 text-sm font-black uppercase transition-all cursor-pointer rounded-none ${
+                  activeCategory === category.id
+                    ? "bg-warning text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5"
+                    : "bg-white text-black hover:bg-zinc-100"
+                }`}
+              >
+                {category.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Active Order Banner ── */}
       {placedOrders.length > 0 && (
@@ -886,18 +926,18 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
 
       {/* ── Menu list ── */}
       <main className="flex-1 px-4 py-4 pb-32 print:hidden">
-        {items.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <div className="py-20 text-center border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] my-4 p-8">
             <span className="text-5xl">🍽️</span>
-            <p className="font-display font-black text-xl uppercase mt-4 text-black">Menu coming soon</p>
+            <p className="font-display font-black text-xl uppercase mt-4 text-black">No items found</p>
             <p className="text-gray-500 font-semibold text-sm mt-1 leading-relaxed">
-              The kitchen is getting ready. Check back shortly!
+              No items are available in this category.
             </p>
           </div>
         ) : (
           <div className="space-y-6">
             {categories.map((category) => {
-              const categoryItems = items.filter((item) => item.category_id === category.id);
+              const categoryItems = filteredItems.filter((item) => item.category_id === category.id);
               if (categoryItems.length === 0) return null;
               return (
                 <div key={category.id} className="space-y-2">
@@ -920,7 +960,7 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
 
             {/* Uncategorized Items */}
             {(() => {
-              const uncategorizedItems = items.filter(
+              const uncategorizedItems = filteredItems.filter(
                 (item) => !item.category_id || !categories.some((c) => c.id === item.category_id)
               );
               if (uncategorizedItems.length === 0) return null;
