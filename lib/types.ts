@@ -56,4 +56,5 @@ export interface Order {
   coupon_id: string | null;
   discount_amount: number;
   created_at: string;
+  scheduled_at: string | null;
 }

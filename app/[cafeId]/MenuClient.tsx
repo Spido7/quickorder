@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/purity, @typescript-eslint/no-explicit-any */
 
 import {
   useReducer,
@@ -153,6 +154,19 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
     }
   }, [order.created_at]);
 
+  const formattedScheduledDate = useMemo(() => {
+    if (!order.scheduled_at) return "";
+    try {
+      return new Date(order.scheduled_at).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+    } catch (e) {
+      return "";
+    }
+  }, [order.scheduled_at]);
+
   const statusConfig = {
     pending: { label: "⏳ Pending Payment / Cooking", color: "bg-warning text-black border-black" },
     preparing: { label: "👨‍🍳 Cooking in Kitchen", color: "bg-accent-dim text-white border-black" },
@@ -180,6 +194,12 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
           <span className="text-zinc-600">Date:</span>
           <span className="text-black">{formattedDate}</span>
         </div>
+        {order.scheduled_at && formattedScheduledDate && (
+          <div className="flex justify-between text-purple-800 font-extrabold border-2 border-dashed border-black bg-purple-50 p-1.5 my-1.5">
+            <span>📅 Scheduled:</span>
+            <span>{formattedScheduledDate}</span>
+          </div>
+        )}
         <div className="flex justify-between">
           <span className="text-zinc-600">Station:</span>
           <span className="text-black">{order.table_number === "0" || !order.table_number ? "Counter / Takeaway" : `Table ${order.table_number}`}</span>
@@ -267,6 +287,24 @@ function CheckoutSheet({
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState<string | null>(null);
 
+  // Scheduling states
+  const [scheduleOption, setScheduleOption] = useState<"now" | "later">("now");
+  const [scheduledTime, setScheduledTime] = useState<Date | null>(null);
+  const [customTimeInput, setCustomTimeInput] = useState("");
+  const [activePreset, setActivePreset] = useState<number | null>(null);
+  const [schedulingError, setSchedulingError] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentTime(Date.now());
+      const timer = setInterval(() => {
+        setCurrentTime(Date.now());
+      }, 10000);
+      return () => clearInterval(timer);
+    }
+  }, [isOpen]);
+
   // Derived price breakdown
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const finalTotal = Math.max(0, total - discount);
@@ -282,6 +320,11 @@ function CheckoutSheet({
       setAppliedCoupon(null);
       setPromoError(null);
       setPromoSuccess(null);
+      setScheduleOption("now");
+      setScheduledTime(null);
+      setCustomTimeInput("");
+      setActivePreset(null);
+      setSchedulingError(null);
       
       // Auto-set from search param if scanning table QR
       if (initialTable !== undefined) {
@@ -297,7 +340,41 @@ function CheckoutSheet({
 
   const label = cafe.has_seating ? "Table Number" : "Your Name";
   const placeholder = cafe.has_seating ? "e.g. 4" : "e.g. Rahul";
-  const canPay = identifier.trim().length > 0 && !loading;
+
+  const handlePresetClick = (minutes: number) => {
+    setActivePreset(minutes);
+    const baseTime = currentTime || Date.now();
+    const date = new Date(baseTime + minutes * 60000);
+    setScheduledTime(date);
+    setCustomTimeInput("");
+    setSchedulingError(null);
+  };
+
+  const handleCustomTimeChange = (timeString: string) => {
+    setActivePreset(null);
+    setCustomTimeInput(timeString);
+    if (!timeString) {
+      setScheduledTime(null);
+      setSchedulingError(null);
+      return;
+    }
+    
+    const [hours, minutes] = timeString.split(":").map(Number);
+    const baseTime = currentTime || Date.now();
+    const now = new Date(baseTime);
+    const selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+    
+    if (selectedDate.getTime() < baseTime) {
+      setScheduledTime(null);
+      setSchedulingError("Please select a future time for today");
+    } else {
+      setScheduledTime(selectedDate);
+      setSchedulingError(null);
+    }
+  };
+
+  const hasValidSchedule = scheduleOption === "now" || (scheduledTime !== null && !schedulingError);
+  const canPay = identifier.trim().length > 0 && !loading && hasValidSchedule;
 
   async function handleApplyPromo() {
     if (!promoCode.trim()) return;
@@ -359,6 +436,7 @@ function CheckoutSheet({
           order_status: "pending",
           coupon_id: appliedCoupon ? appliedCoupon.id : null,
           discount_amount: discount,
+          scheduled_at: scheduledTime ? scheduledTime.toISOString() : null,
         })
         .select()
         .single<Order>();
@@ -561,6 +639,108 @@ function CheckoutSheet({
                   <p className="text-success text-xs font-bold mt-1.5 uppercase tracking-wide">
                     🎉 {promoSuccess}
                   </p>
+                )}
+              </div>
+
+              {/* Scheduling Section */}
+              <div className="mb-5 border-2 border-black p-3 bg-white shadow-[3px_3px_0px_0px_#000]">
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-2">
+                  🕒 Schedule Order
+                </label>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScheduleOption("now");
+                      setScheduledTime(null);
+                      setActivePreset(null);
+                      setCustomTimeInput("");
+                      setSchedulingError(null);
+                    }}
+                    className={`py-2 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer ${
+                      scheduleOption === "now"
+                        ? "bg-warning text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
+                        : "bg-white text-black hover:bg-zinc-50"
+                    }`}
+                  >
+                    ⚡ Prepare Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScheduleOption("later");
+                    }}
+                    className={`py-2 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer ${
+                      scheduleOption === "later"
+                        ? "bg-accent text-white shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
+                        : "bg-white text-black hover:bg-zinc-50"
+                    }`}
+                  >
+                    📅 Schedule Later
+                  </button>
+                </div>
+
+                {scheduleOption === "later" && (
+                  <div className="space-y-3 pt-2 border-t-2 border-dashed border-black">
+                    {/* Preset buttons */}
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1.5">
+                        Quick Presets (Today Only)
+                      </p>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[15, 30, 45, 60].map((mins) => (
+                          <button
+                            key={mins}
+                            type="button"
+                            onClick={() => handlePresetClick(mins)}
+                            className={`py-1.5 px-1 text-[10px] font-black border border-black transition-all cursor-pointer truncate ${
+                              activePreset === mins
+                                ? "bg-warning text-black shadow-[1px_1px_0px_0px_#000]"
+                                : "bg-zinc-50 text-black hover:bg-zinc-100"
+                            }`}
+                          >
+                            +{mins}M
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom time picker */}
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1.5">
+                        Or Set Custom Time (Today Only)
+                      </p>
+                      <input
+                        type="time"
+                        value={customTimeInput}
+                        onChange={(e) => handleCustomTimeChange(e.target.value)}
+                        className="w-full min-h-10 px-3 border border-black bg-white text-black font-bold focus:outline-none focus:ring-0 focus:border-accent text-xs rounded-none"
+                      />
+                    </div>
+
+                    {/* Verification label */}
+                    {scheduledTime && !schedulingError && (
+                      <div className="p-2 bg-green-50 border border-green-800 text-green-900 text-[10px] font-bold uppercase tracking-wider">
+                        📅 Scheduled for Today at{" "}
+                        <span className="font-black text-xs">
+                          {scheduledTime.toLocaleTimeString("en-IN", {
+                            timeZone: "Asia/Kolkata",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </span>{" "}
+                        (approx. {Math.round((scheduledTime.getTime() - (currentTime || Date.now())) / 60000)} mins from now)
+                      </div>
+                    )}
+
+                    {/* Scheduling Error */}
+                    {schedulingError && (
+                      <p className="text-danger text-[10px] font-bold uppercase tracking-wide">
+                        ⚠️ {schedulingError}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 

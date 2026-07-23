@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
@@ -111,7 +111,7 @@ function MenuItemRow({ item, onToggle, onEdit }: {
 }
 
 // ─── Regular Order Card (Preparing / Done) ────────────────────────────────────
-function OrderCard({ order, onStatusChange }: {
+const OrderCard = memo(function OrderCard({ order, onStatusChange }: {
   order: Order;
   onStatusChange: (id: string, status: Order["order_status"]) => void;
 }) {
@@ -123,22 +123,44 @@ function OrderCard({ order, onStatusChange }: {
 
   useEffect(() => {
     const updateTime = () => {
-      const diffMs = Date.now() - new Date(order.created_at).getTime();
-      const diffMins = Math.floor(diffMs / 60000);
-      
-      if (diffMins < 1) {
-        setTimeText(`${diffMins}m ago`);
-        setIsOverTime(false);
+      if (order.scheduled_at) {
+        const scheduledTime = new Date(order.scheduled_at).getTime();
+        const diffMs = scheduledTime - Date.now();
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMs > 0) {
+          setTimeText(
+            `Scheduled in ${diffMins}m (${new Date(order.scheduled_at).toLocaleTimeString("en-IN", {
+              timeZone: "Asia/Kolkata",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })})`
+          );
+          setIsOverTime(false);
+        } else {
+          const overdueMins = Math.abs(diffMins);
+          setTimeText(`Due ${overdueMins}m ago`);
+          setIsOverTime(overdueMins >= 5);
+        }
       } else {
-        setTimeText(`${diffMins}m ago`);
-        setIsOverTime(diffMins >= 5);
+        const diffMs = Date.now() - new Date(order.created_at).getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        
+        if (diffMins < 1) {
+          setTimeText(`0m ago`);
+          setIsOverTime(false);
+        } else {
+          setTimeText(`${diffMins}m ago`);
+          setIsOverTime(diffMins >= 5);
+        }
       }
     };
 
     updateTime();
     const interval = setInterval(updateTime, 10000);
     return () => clearInterval(interval);
-  }, [order.created_at]);
+  }, [order.created_at, order.scheduled_at]);
 
   const handleAction = async (nextStatus: Order["order_status"]) => {
     setBusy(true);
@@ -160,10 +182,15 @@ function OrderCard({ order, onStatusChange }: {
         onClick={() => setIsExpanded(true)}
         className="border-4 border-black bg-zinc-50 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black rounded-none flex items-center justify-between cursor-pointer hover:bg-zinc-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all select-none"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="text-[10px] font-black uppercase bg-zinc-200 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
             {location}
           </span>
+          {order.scheduled_at && (
+            <span className="text-[10px] font-black uppercase bg-purple-200 text-purple-900 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+              📅 Scheduled
+            </span>
+          )}
           <h3 className="font-display font-black text-black text-sm uppercase tracking-tight">
             #ORD-{orderId}
           </h3>
@@ -191,13 +218,18 @@ function OrderCard({ order, onStatusChange }: {
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
-            <h3 className="font-display font-black text-black text-sm sm:text-base uppercase tracking-tight">
+            <h3 className="font-display font-black text-black text-sm sm:text-base uppercase tracking-tight truncate max-w-[200px]">
               #ORD-{orderId} - {customerName}
             </h3>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="text-[10px] font-black uppercase bg-zinc-100 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
                 {location}
               </span>
+              {order.scheduled_at && (
+                <span className="text-[10px] font-black uppercase bg-purple-200 text-purple-900 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                  📅 Scheduled
+                </span>
+              )}
               <span className={`text-xs font-bold ${isOverTime ? 'text-red-600 font-black' : 'text-black/60'}`}>
                 {timeText}
               </span>
@@ -279,7 +311,7 @@ function OrderCard({ order, onStatusChange }: {
       </div>
     </div>
   );
-}
+});
 
 // ─── Tab Bar ──────────────────────────────────────────────────────────────────
 type Tab = "orders" | "menu";
@@ -356,6 +388,16 @@ export default function DashboardClient() {
   const [editItemCategoryId, setEditItemCategoryId] = useState("");
   const [updatingItem, setUpdatingItem] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const [showScheduled, setShowScheduled] = useState(true);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Stable client ref — avoids re-creating on every render
   const [supabase] = useState(() => createClient());
@@ -661,15 +703,28 @@ export default function DashboardClient() {
     await supabase.from("orders").update({ order_status: updated }).eq("id", id);
   }
 
-  async function handleStatusChange(id: string, status: Order["order_status"]) {
+  const handleStatusChange = useCallback(async (id: string, status: Order["order_status"]) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, order_status: status } : o))
     );
     await supabase.from("orders").update({ order_status: status }).eq("id", id);
-  }
+  }, [supabase]);
 
   // ── Derived state ────────────────────────────────────────────────────────────
-  const rawIncoming = orders.filter((o) => o.order_status === "pending");
+  // Split pending orders:
+  // - rawScheduled: pending orders scheduled > 15m in the future.
+  // - rawIncoming: standard pending orders, or scheduled orders <= 15m away / already passed.
+  const rawScheduled = orders.filter((o) => 
+    o.order_status === "pending" && 
+    o.scheduled_at && 
+    (new Date(o.scheduled_at).getTime() - currentTime) > 15 * 60 * 1000
+  );
+
+  const rawIncoming = orders.filter((o) => 
+    o.order_status === "pending" && 
+    (!o.scheduled_at || (new Date(o.scheduled_at).getTime() - currentTime) <= 15 * 60 * 1000)
+  );
+
   const rawCooking = orders.filter((o) => o.order_status === "preparing");
   const rawDone = orders.filter((o) => o.order_status === "done");
 
@@ -704,6 +759,11 @@ export default function DashboardClient() {
   const incomingOrders = sortOrders(rawIncoming, sortBy, "incoming");
   const cookingOrders = sortOrders(rawCooking, sortBy, "cooking");
   const doneOrders = sortOrders(rawDone, sortBy, "completed");
+
+  const scheduledOrders = [...rawScheduled].sort((a, b) => {
+    if (!a.scheduled_at || !b.scheduled_at) return 0;
+    return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
+  });
 
   if (!cafeId) {
     return (
@@ -835,6 +895,29 @@ export default function DashboardClient() {
                 </select>
               </div>
             </div>
+
+            {scheduledOrders.length > 0 && (
+              <div className="border-4 border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black mb-6">
+                <button
+                  onClick={() => setShowScheduled(!showScheduled)}
+                  className="w-full flex items-center justify-between font-display font-black text-sm uppercase tracking-widest text-left cursor-pointer"
+                >
+                  <span className="flex items-center gap-2">
+                    📅 Scheduled Orders ({scheduledOrders.length})
+                  </span>
+                  <span className="text-xs border-2 border-black bg-white px-2 py-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-black select-none">
+                    {showScheduled ? "COLLAPSE ▲" : "EXPAND ▼"}
+                  </span>
+                </button>
+                {showScheduled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4 pt-4 border-t-4 border-black border-dashed">
+                    {scheduledOrders.map((order) => (
+                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
 

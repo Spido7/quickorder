@@ -57,22 +57,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geist.variable} ${spaceGrotesk.variable} ${outfit.variable}`}>
-      <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              try {
-                const theme = localStorage.getItem('theme');
-                if (theme === 'dark') {
-                  document.documentElement.classList.add('dark');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                }
-              } catch (e) {}
-            })();
-          `
-        }} />
-      </head>
+      <head />
       <body>{children}</body>
     </html>
   );

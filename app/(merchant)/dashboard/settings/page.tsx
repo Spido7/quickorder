@@ -44,26 +44,13 @@ export default function SettingsPage() {
   const [printMode, setPrintMode] = useState<"single" | "all">("single");
   const [origin, setOrigin] = useState("");
 
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       setOrigin(window.location.origin.replace(/\/$/, ""));
-      const isDark = document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark";
-      setDarkMode(isDark);
+      document.documentElement.classList.remove("dark");
+      localStorage.removeItem("theme");
     }
   }, []);
-
-  const handleToggleDarkMode = (enable: boolean) => {
-    setDarkMode(enable);
-    if (enable) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  };
 
   const downloadQRCode = () => {
     const svgElement = document.querySelector("#qr-container svg");
@@ -378,25 +365,6 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Dark Mode Theme Selection Card */}
-                  <div className="bg-white border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000] rounded-none space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1">
-                        <h4 className="font-display font-black text-sm uppercase tracking-tight text-black flex items-center gap-1.5">
-                          🌙 Dark Mode / High Contrast
-                        </h4>
-                        <p className="text-black/60 text-xs font-bold leading-normal">
-                          Switch between light and dark high-contrast themes.
-                        </p>
-                      </div>
-                      <div className="shrink-0 pt-0.5">
-                        <ToggleSwitch
-                          checked={darkMode}
-                          onChange={(v) => handleToggleDarkMode(v)}
-                        />
-                      </div>
-                    </div>
-                  </div>
 
                   <button
                     type="submit"

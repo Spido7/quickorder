@@ -25,7 +25,7 @@ export default function LandingPage() {
   // Demo State
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [demoCart, setDemoCart] = useState<Record<string, number>>({});
-  
+
   // Contact Form State
   const [formData, setFormData] = useState({
     name: "",
@@ -169,10 +169,10 @@ export default function LandingPage() {
       <section className="relative py-16 lg:py-24 border-b-4 border-black overflow-hidden bg-white">
         {/* Background Grid Pattern */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "radial-gradient(#000 2px, transparent 2px)", backgroundSize: "24px 24px" }} />
-        
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
+
             {/* Left Column: Hero Text */}
             <div className="lg:col-span-7 flex flex-col space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-warning border-2 border-black shadow-[2px_2px_0px_0px_#000] font-black uppercase text-xs tracking-widest w-fit">
@@ -180,12 +180,12 @@ export default function LandingPage() {
               </div>
               <h1 className="font-display font-black text-4xl sm:text-6xl lg:text-7xl leading-none uppercase tracking-tight text-black">
                 Digital Menus, <br />
-                <span className="text-accent underline decoration-black decoration-wavy underline-offset-8">Instant Payments.</span>
+                <span className="text-accent underline decoration-black decoration-wavy underline-offset-8 whitespace-nowrap">Instant Payments.</span>
               </h1>
               <p className="text-lg md:text-xl font-bold text-black/80 max-w-2xl leading-relaxed">
                 Empower your cafe or restaurant. Let customers scan table-specific QR codes, browse your menu, place orders, and pay directly to your UPI ID. Zero gateway fees, zero wait times.
               </p>
-              
+
               {/* CTA Buttons */}
               <div className="flex flex-wrap gap-4 pt-2">
                 <Link
@@ -222,7 +222,7 @@ export default function LandingPage() {
             {/* Right Column: Hero Graphic / Interactive Mini Preview */}
             <div className="lg:col-span-5 flex justify-center">
               <div className="w-full max-w-sm bg-[#f5f2eb] border-4 border-black shadow-[8px_8px_0px_0px_#000] p-4 relative">
-                
+
                 {/* Mock Phone Status Bar */}
                 <div className="flex justify-between items-center pb-3 border-b-2 border-black/20 mb-3 text-xs font-black text-black/60">
                   <span>📶 QuickOrder Network</span>
@@ -242,11 +242,10 @@ export default function LandingPage() {
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1 border-2 border-black text-xs font-black uppercase transition-all rounded-none shrink-0 ${
-                        selectedCategory === cat
+                      className={`px-3 py-1 border-2 border-black text-xs font-black uppercase transition-all rounded-none shrink-0 ${selectedCategory === cat
                           ? "bg-accent text-white shadow-none translate-x-[1px] translate-y-[1px]"
                           : "bg-white text-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[0.5px] hover:translate-y-[0.5px]"
-                      }`}
+                        }`}
                     >
                       {cat}
                     </button>
@@ -267,7 +266,7 @@ export default function LandingPage() {
                           <p className="text-[9px] text-black/60 font-medium leading-tight mt-0.5">{item.description}</p>
                           <p className="text-xs font-black text-accent mt-1">₹{item.price}</p>
                         </div>
-                        
+
                         {/* Add/Remove Action */}
                         <div className="shrink-0">
                           {qty > 0 ? (
@@ -315,7 +314,7 @@ export default function LandingPage() {
                     </button>
                   </div>
                 )}
-                
+
                 {/* Floating Demo Sticker */}
                 <div className="absolute -top-3 -right-3 bg-warning text-black border-2 border-black px-2 py-1 font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_#000] rotate-6 animate-pulse">
                   Try Clicking Me!
@@ -330,7 +329,7 @@ export default function LandingPage() {
       {/* Features Section */}
       <section id="features" className="py-20 bg-background border-b-4 border-black relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-black flex flex-wrap justify-center gap-x-3 gap-y-1">
               <span className="reveal-text-fill">Built</span>
@@ -345,7 +344,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            
+
             {/* Feature 1 */}
             <div className="bg-warning border-3 border-black p-6 shadow-[5px_5px_0px_0px_#000] flex flex-col justify-between reveal-card-pop" style={{ transitionDelay: '0ms' }}>
               <div>
@@ -439,37 +438,37 @@ export default function LandingPage() {
                   </Link>
                 </div>
               </div>
-              
+
               <div className="lg:col-span-5 hidden lg:flex justify-center">
                 {/* Visual Graphic representation of QR Scan */}
                 <div className="border-4 border-black bg-white p-6 shadow-[6px_6px_0px_0px_#000] text-center w-full max-w-sm reveal-card-pop">
                   <div className="bg-[#f5f2eb] border-2 border-black p-4 inline-block mb-4">
                     {/* Simulated QR Code SVG representation */}
                     <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="100" height="100" fill="white"/>
-                      <rect x="5" y="5" width="25" height="25" fill="black" stroke="black" strokeWidth="2"/>
-                      <rect x="10" y="10" width="15" height="15" fill="white"/>
-                      <rect x="12" y="12" width="11" height="11" fill="black"/>
-                      
-                      <rect x="70" y="5" width="25" height="25" fill="black" stroke="black" strokeWidth="2"/>
-                      <rect x="75" y="10" width="15" height="15" fill="white"/>
-                      <rect x="77" y="12" width="11" height="11" fill="black"/>
-                      
-                      <rect x="5" y="70" width="25" height="25" fill="black" stroke="black" strokeWidth="2"/>
-                      <rect x="10" y="75" width="15" height="15" fill="white"/>
-                      <rect x="12" y="77" width="11" height="11" fill="black"/>
-                      
+                      <rect width="100" height="100" fill="white" />
+                      <rect x="5" y="5" width="25" height="25" fill="black" stroke="black" strokeWidth="2" />
+                      <rect x="10" y="10" width="15" height="15" fill="white" />
+                      <rect x="12" y="12" width="11" height="11" fill="black" />
+
+                      <rect x="70" y="5" width="25" height="25" fill="black" stroke="black" strokeWidth="2" />
+                      <rect x="75" y="10" width="15" height="15" fill="white" />
+                      <rect x="77" y="12" width="11" height="11" fill="black" />
+
+                      <rect x="5" y="70" width="25" height="25" fill="black" stroke="black" strokeWidth="2" />
+                      <rect x="10" y="75" width="15" height="15" fill="white" />
+                      <rect x="12" y="77" width="11" height="11" fill="black" />
+
                       {/* Random squares to simulate QR code data */}
-                      <rect x="40" y="10" width="10" height="10" fill="black"/>
-                      <rect x="50" y="20" width="10" height="5" fill="black"/>
-                      <rect x="45" y="35" width="15" height="15" fill="black"/>
-                      <rect x="15" y="45" width="10" height="10" fill="black"/>
-                      <rect x="75" y="45" width="15" height="10" fill="black"/>
-                      <rect x="45" y="70" width="15" height="15" fill="black"/>
-                      <rect x="75" y="75" width="10" height="10" fill="black"/>
-                      <rect x="40" y="50" width="5" height="10" fill="black"/>
-                      <rect x="60" y="5" width="5" height="15" fill="black"/>
-                      <rect x="65" y="85" width="10" height="5" fill="black"/>
+                      <rect x="40" y="10" width="10" height="10" fill="black" />
+                      <rect x="50" y="20" width="10" height="5" fill="black" />
+                      <rect x="45" y="35" width="15" height="15" fill="black" />
+                      <rect x="15" y="45" width="10" height="10" fill="black" />
+                      <rect x="75" y="45" width="15" height="10" fill="black" />
+                      <rect x="45" y="70" width="15" height="15" fill="black" />
+                      <rect x="75" y="75" width="10" height="10" fill="black" />
+                      <rect x="40" y="50" width="5" height="10" fill="black" />
+                      <rect x="60" y="5" width="5" height="15" fill="black" />
+                      <rect x="65" y="85" width="10" height="5" fill="black" />
                     </svg>
                   </div>
                   <h4 className="font-display font-black text-sm uppercase text-black">Scan Table 04</h4>
@@ -484,7 +483,7 @@ export default function LandingPage() {
       {/* Pricing Section */}
       <section id="pricing" className="py-20 bg-background border-b-4 border-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-black flex flex-wrap justify-center gap-x-3 gap-y-1">
               <span className="reveal-text-fill">Simple,</span>{" "}
@@ -497,7 +496,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-            
+
             {/* Plan 1 */}
             <div className="bg-white border-4 border-black p-8 shadow-[6px_6px_0px_0px_#000] flex flex-col justify-between relative reveal-card-pop" style={{ transitionDelay: '0ms' }}>
               <div className="space-y-6">
@@ -597,7 +596,7 @@ export default function LandingPage() {
                     <span className="font-display font-black text-4xl text-black">₹499</span>
                     <span className="text-sm font-bold text-black/85 uppercase">/ month</span>
                   </div>
-                  
+
                   {/* Trial Promo Notification */}
                   <div className="bg-white border-2 border-black p-2 mt-2 shadow-[2px_2px_0px_0px_#000] text-[11px] font-black text-accent uppercase tracking-tight">
                     🔥 2 MONTHS FREE TRIAL! THEN Billed AT ₹259/MO FOR 1 YEAR
@@ -640,7 +639,7 @@ export default function LandingPage() {
       {/* Contact Section */}
       <section id="contact" className="py-20 bg-white border-b-4 border-black">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           <div className="text-center mb-12 space-y-4">
             <h2 className="font-display font-black text-3xl sm:text-5xl uppercase tracking-tight text-black reveal-text-fill">
               Get in Touch
@@ -670,7 +669,7 @@ export default function LandingPage() {
               </div>
             ) : (
               <form onSubmit={handleContactSubmit} className="space-y-6">
-                
+
                 {formError && (
                   <div className="bg-accent/10 border-2 border-accent text-accent p-3 font-bold text-sm uppercase tracking-wide">
                     ⚠️ {formError}
@@ -745,7 +744,7 @@ export default function LandingPage() {
       <footer className="bg-black text-white py-12 mt-auto border-t-4 border-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center border-b-2 border-white/20 pb-8 mb-8">
-            
+
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">⚡</span>
@@ -772,7 +771,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row justify-between items-center text-[10px] font-black uppercase text-white/40 tracking-widest gap-2">
             <div>
-              Made with ☕ & Neo-Brutalism
+              Made with ☕
             </div>
             <div>
               UPI Deep Link Specifications compliance • NPCI Merchant Category 5812
