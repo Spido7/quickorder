@@ -123,6 +123,24 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange }: {
 
   useEffect(() => {
     const updateTime = () => {
+      const formatDuration = (ms: number): string => {
+        const absMs = Math.abs(ms);
+        const totalMins = Math.floor(absMs / 60000);
+        if (totalMins < 1) return "0m";
+
+        const mins = totalMins % 60;
+        const totalHours = Math.floor(totalMins / 60);
+        const hours = totalHours % 24;
+        const days = Math.floor(totalHours / 24);
+
+        const parts: string[] = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+
+        return parts.join(" ");
+      };
+
       if (order.scheduled_at) {
         const scheduledTime = new Date(order.scheduled_at).getTime();
         const diffMs = scheduledTime - Date.now();
@@ -130,7 +148,7 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange }: {
         
         if (diffMs > 0) {
           setTimeText(
-            `Scheduled in ${diffMins}m (${new Date(order.scheduled_at).toLocaleTimeString("en-IN", {
+            `Scheduled in ${formatDuration(diffMs)} (${new Date(order.scheduled_at).toLocaleTimeString("en-IN", {
               timeZone: "Asia/Kolkata",
               hour: "2-digit",
               minute: "2-digit",
@@ -139,9 +157,8 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange }: {
           );
           setIsOverTime(false);
         } else {
-          const overdueMins = Math.abs(diffMins);
-          setTimeText(`Due ${overdueMins}m ago`);
-          setIsOverTime(overdueMins >= 5);
+          setTimeText(`Due ${formatDuration(diffMs)} ago`);
+          setIsOverTime(Math.abs(diffMins) >= 5);
         }
       } else {
         const diffMs = Date.now() - new Date(order.created_at).getTime();
@@ -151,7 +168,7 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange }: {
           setTimeText(`0m ago`);
           setIsOverTime(false);
         } else {
-          setTimeText(`${diffMins}m ago`);
+          setTimeText(`${formatDuration(diffMs)} ago`);
           setIsOverTime(diffMins >= 5);
         }
       }
