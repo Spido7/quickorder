@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { SeatingType } from "@/lib/types";
@@ -100,15 +100,61 @@ function MenuItemsStep({ cafeId }: { cafeId: string }) {
   const [saved, setSaved] = useState<DraftItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [itemError, setItemError] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [loadingCategory, setLoadingCategory] = useState(true);
 
-  const canAdd = draft.name.trim().length >= 1 && parseFloat(draft.price) > 0;
+  // Automatically load or create default category "Menu"
+  useEffect(() => {
+    async function initCategory() {
+      try {
+        setLoadingCategory(true);
+        // 1. Check if any category exists for this cafe
+        const { data: categories, error: fetchError } = await supabase
+          .from("menu_categories")
+          .select("id")
+          .eq("cafe_id", cafeId)
+          .limit(1);
+
+        if (fetchError) throw fetchError;
+
+        if (categories && categories.length > 0) {
+          setCategoryId(categories[0].id);
+        } else {
+          // 2. Create default category "Menu"
+          const { data: newCat, error: insertError } = await supabase
+            .from("menu_categories")
+            .insert({
+              cafe_id: cafeId,
+              name: "Menu",
+              sort_order: 0,
+            })
+            .select("id")
+            .single();
+
+          if (insertError) throw insertError;
+          if (newCat) {
+            setCategoryId(newCat.id);
+          }
+        }
+      } catch (err: any) {
+        console.error("Error initializing category:", err);
+        setItemError("Failed to initialize category: " + err.message);
+      } finally {
+        setLoadingCategory(false);
+      }
+    }
+    initCategory();
+  }, [cafeId, supabase]);
+
+  const canAdd = draft.name.trim().length >= 1 && parseFloat(draft.price) > 0 && categoryId !== null && !loadingCategory;
 
   async function handleAddItem() {
-    if (!canAdd) return;
+    if (!canAdd || !categoryId) return;
     setSaving(true);
     setItemError(null);
     const { error } = await supabase.from("menu_items").insert({
       cafe_id: cafeId,
+      category_id: categoryId,
       name: draft.name.trim(),
       price: parseFloat(draft.price),
       is_available: true,
@@ -245,16 +291,34 @@ export default function SetupClient() {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) { setError("Not logged in."); return; }
 
-      const { error: upsertError } = await supabase.from("cafes").upsert({
-        id: user.id,
-        business_name: state.businessName.trim(),
-        upi_id: state.upiId.trim(),
-        has_seating: state.seatingType === "tables",
-        table_count: state.seatingType === "tables" ? parseInt(state.tableCount) : null,
-      });
+      // 1. Insert/upsert into cafes table and grab returned cafe.id
+      const { data: cafe, error: upsertError } = await supabase
+        .from("cafes")
+        .upsert({
+          id: user.id,
+          business_name: state.businessName.trim(),
+          upi_id: state.upiId.trim(),
+          has_seating: state.seatingType === "tables",
+          table_count: state.seatingType === "tables" ? parseInt(state.tableCount) : null,
+        })
+        .select("id")
+        .single();
+      
       if (upsertError) throw upsertError;
+      if (!cafe) throw new Error("Failed to create cafe.");
 
-      setSavedCafeId(user.id);
+      // 2. Immediately insert/upsert into cafe_profiles mapping cafe_id and auth.uid()
+      const { error: profileError } = await supabase
+        .from("cafe_profiles")
+        .upsert({
+          cafe_id: cafe.id,
+          user_id: user.id,
+          role: "master", // Role constraint limits to 'master' or 'staff'
+        });
+      
+      if (profileError) throw profileError;
+
+      setSavedCafeId(cafe.id);
       next(); // → step 4 (menu items)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
