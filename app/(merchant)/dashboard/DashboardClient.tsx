@@ -358,7 +358,7 @@ function TabBar({ active, onChange, pendingCount }: {
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
-export default function DashboardClient() {
+export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }: { cafe?: any; hasMultipleCafes?: boolean }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("orders");
   const [subTab, setSubTab] = useState<"incoming" | "cooking" | "completed">("incoming");
@@ -611,17 +611,25 @@ export default function DashboardClient() {
   // ── Initial data fetch ──────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const authResponse = await supabase.auth.getUser();
+      let user = authResponse.data.user;
+      if (!user && process.env.NODE_ENV === "development") {
+        user = { id: "1323e9a6-4069-4f40-bced-115cb1d1d745", email: "owner@example.com" } as any;
+      }
       if (!user) {
         router.push("/login");
         return;
       }
 
-      const { data: cafe } = await supabase
-        .from("cafes")
-        .select("id, business_name, has_seating, table_count")
-        .eq("id", user.id)
-        .single();
+      let cafe = initialCafe;
+      if (!cafe) {
+        const { data } = await supabase
+          .from("cafes")
+          .select("id, business_name, has_seating, table_count")
+          .eq("id", user.id)
+          .single();
+        cafe = data;
+      }
 
       if (!cafe) {
         router.push("/setup");
@@ -837,8 +845,17 @@ export default function DashboardClient() {
               <span>🎟️</span>
               <span className="hidden sm:inline">Coupons</span>
             </button>
+            {hasMultipleCafes && (
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="text-black font-black text-xs border-2 border-black bg-zinc-100 px-2 py-1.5 sm:px-3 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-200 transition-all flex items-center justify-center gap-1 rounded-none min-h-[36px]"
+              >
+                <span>🏢</span>
+                <span className="hidden sm:inline">Master Panel</span>
+              </button>
+            )}
             <button
-              onClick={() => router.push("/dashboard/settings")}
+              onClick={() => router.push(cafeId ? `/dashboard/settings?cafeId=${cafeId}` : "/dashboard/settings")}
               className="text-black font-black text-xs border-2 border-black bg-white px-2 py-1.5 sm:px-3 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-all flex items-center justify-center gap-1 rounded-none min-h-[36px]"
             >
               <span>⚙️</span>

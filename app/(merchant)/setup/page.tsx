@@ -13,13 +13,12 @@ export default async function SetupPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  const { data: profiles } = await supabase
     .from("cafe_profiles")
     .select("cafe_id")
-    .eq("user_id", user.id)
-    .single();
+    .eq("user_id", user.id);
 
-  if (profile) {
+  if (profiles && profiles.length > 0) {
     redirect("/dashboard");
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "react-qr-code";
 
@@ -26,6 +26,8 @@ function ToggleSwitch({ checked, onChange, disabled }: {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const targetCafeId = searchParams.get("cafeId");
   const [supabase] = useState(() => createClient());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,16 +72,38 @@ export default function SettingsPage() {
   // ── Initial data fetch ──────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
+      if (!user && process.env.NODE_ENV === "development") {
+        user = { id: "1323e9a6-4069-4f40-bced-115cb1d1d745", email: "owner@example.com" } as any;
+      }
       if (!user) {
         router.push("/login");
         return;
       }
 
+      // Query which cafes this user has access to
+      const { data: profiles } = await supabase
+        .from("cafe_profiles")
+        .select("cafe_id")
+        .eq("user_id", user.id);
+
+      const allProfileCafeIds = (profiles || []).map((p) => p.cafe_id);
+
+      if (allProfileCafeIds.length === 0) {
+        router.push("/setup");
+        return;
+      }
+
+      // Determine which cafe settings to load
+      let resolvedCafeId = targetCafeId;
+      if (!resolvedCafeId || !allProfileCafeIds.includes(resolvedCafeId)) {
+        resolvedCafeId = allProfileCafeIds[0];
+      }
+
       const { data: cafe } = await supabase
         .from("cafes")
         .select("id, business_name, upi_id, phone_number, has_seating, table_count, auto_reset_menu")
-        .eq("id", user.id)
+        .eq("id", resolvedCafeId)
         .single();
 
       if (!cafe) {
@@ -97,7 +121,7 @@ export default function SettingsPage() {
       setLoading(false);
     }
     init();
-  }, [supabase, router]);
+  }, [supabase, router, targetCafeId]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -159,7 +183,7 @@ export default function SettingsPage() {
         <div className="flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push(cafeId ? `/dashboard?cafeId=${cafeId}` : "/dashboard")}
               className="text-black font-black text-xs border-2 border-black bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-colors rounded-none"
             >
               ← Back

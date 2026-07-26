@@ -26,13 +26,12 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else if (data.user) {
-      const { data: profile } = await supabase
+      const { data: profiles } = await supabase
         .from("cafe_profiles")
         .select("cafe_id")
-        .eq("user_id", data.user.id)
-        .single();
+        .eq("user_id", data.user.id);
 
-      if (profile) {
+      if (profiles && profiles.length > 0) {
         router.push("/dashboard");
       } else {
         router.push("/setup");
