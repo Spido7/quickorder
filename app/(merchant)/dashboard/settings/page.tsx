@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "react-qr-code";
 
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
 
 
 // ─── Toggle Switch ────────────────────────────────────────────────────────────
@@ -24,7 +22,7 @@ function ToggleSwitch({ checked, onChange, disabled }: {
   );
 }
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetCafeId = searchParams.get("cafeId");
@@ -605,3 +603,19 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+          <span className="font-bold text-sm uppercase tracking-wider">Loading Settings…</span>
+        </div>
+      </div>
+    }>
+      <SettingsPageContent />
+    </Suspense>
+  );
+}
+

@@ -6,8 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Coupon } from "@/lib/types";
 import { createCoupon, toggleCoupon, deleteCoupon } from "../actions";
 
-export const runtime = "edge";
-export const dynamic = "force-dynamic";
+
 
 
 export default function CouponsPage() {
