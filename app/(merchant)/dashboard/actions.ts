@@ -295,3 +295,95 @@ export async function deleteCoupon(couponId: string) {
   revalidatePath("/dashboard/coupons");
   return { success: true };
 }
+
+export async function saveCafeSecrets(cafeId: string, keyId: string, keySecret: string) {
+  const { encrypt } = await import("@/lib/crypto");
+  const supabase = await createClient();
+  
+  // 1. Get authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  // 2. Query the cafe_profiles table to check if the user has role = 'master' for this specific cafeId
+  const { data: profile, error: profileError } = await supabase
+    .from("cafe_profiles")
+    .select("role")
+    .eq("cafe_id", cafeId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (profileError || !profile || profile.role !== "master") {
+    throw new Error("Forbidden: Must have master role for this cafe");
+  }
+
+  // 3. Encrypt the secret key if it is not already masked
+  let encryptedSecret = null;
+  if (keySecret) {
+    if (keySecret.startsWith("••••")) {
+      // Do not modify secret since it was masked and not changed by user
+    } else {
+      encryptedSecret = await encrypt(keySecret);
+    }
+  }
+
+  // 4. Perform upsert
+  const updateData: any = {
+    id: cafeId,
+    razorpay_key_id: keyId,
+  };
+  if (encryptedSecret) {
+    updateData.razorpay_key_secret = encryptedSecret;
+  }
+
+  const { error: upsertError } = await supabase
+    .from("cafe_secrets")
+    .upsert(updateData);
+
+  if (upsertError) {
+    throw new Error(upsertError.message);
+  }
+
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+export async function getCafeSecrets(cafeId: string) {
+  const supabase = await createClient();
+  
+  // 1. Get authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  // 2. Query the cafe_profiles table to check if the user has role = 'master' for this specific cafeId
+  const { data: profile, error: profileError } = await supabase
+    .from("cafe_profiles")
+    .select("role")
+    .eq("cafe_id", cafeId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (profileError || !profile || profile.role !== "master") {
+    throw new Error("Forbidden: Must have master role for this cafe");
+  }
+
+  // 3. Fetch from database
+  const { data: secrets, error: secretsError } = await supabase
+    .from("cafe_secrets")
+    .select("razorpay_key_id, razorpay_key_secret")
+    .eq("id", cafeId)
+    .single();
+
+  if (secretsError && secretsError.code !== "PGRST116") { // PGRST116 is code for 0 rows returned
+    throw new Error(secretsError.message);
+  }
+
+  return {
+    keyId: secrets?.razorpay_key_id || "",
+    keySecret: secrets?.razorpay_key_secret ? "••••••••••••••••" : "",
+  };
+}
+

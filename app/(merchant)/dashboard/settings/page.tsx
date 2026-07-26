@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import QRCode from "react-qr-code";
+import { saveCafeSecrets, getCafeSecrets } from "../actions";
 
 
 
@@ -38,7 +39,10 @@ function SettingsPageContent() {
   const [autoResetMenu, setAutoResetMenu] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"profile" | "system" | "qr" | "account">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "payments" | "system" | "qr" | "account">("profile");
+  const [rpayKeyId, setRpayKeyId] = useState("");
+  const [rpayKeySecret, setRpayKeySecret] = useState("");
+  const [savingSecrets, setSavingSecrets] = useState(false);
 
   const [selectedTable, setSelectedTable] = useState<string>("0");
   const [printMode, setPrintMode] = useState<"single" | "all">("single");
@@ -116,6 +120,16 @@ function SettingsPageContent() {
       setHasSeating(cafe.has_seating || false);
       setTableCount(cafe.table_count || 0);
       setAutoResetMenu(cafe.auto_reset_menu ?? true);
+
+      // Fetch Secrets
+      try {
+        const secrets = await getCafeSecrets(cafe.id);
+        setRpayKeyId(secrets.keyId);
+        setRpayKeySecret(secrets.keySecret);
+      } catch (err) {
+        console.error("Error loading cafe secrets:", err);
+      }
+
       setLoading(false);
     }
     init();
@@ -155,6 +169,25 @@ function SettingsPageContent() {
       setErrorMessage(err.message || "Failed to update settings.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleSaveSecrets(e: React.FormEvent) {
+    e.preventDefault();
+    if (!cafeId) return;
+    setSavingSecrets(true);
+    setErrorMessage(null);
+    try {
+      await saveCafeSecrets(cafeId, rpayKeyId.trim(), rpayKeySecret.trim());
+      showToast("Razorpay credentials saved successfully ⚡");
+      // Reload secrets to mask keySecret
+      const secrets = await getCafeSecrets(cafeId);
+      setRpayKeyId(secrets.keyId);
+      setRpayKeySecret(secrets.keySecret);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to update Razorpay credentials.");
+    } finally {
+      setSavingSecrets(false);
     }
   }
 
@@ -212,7 +245,8 @@ function SettingsPageContent() {
           {/* ── Left Sidebar (Tabs Selector) ── */}
           <div className="no-print grid grid-cols-2 md:grid-cols-1 gap-3">
             {[
-              { id: "profile", label: "🏪 Profile & Payout", desc: "Branding & UPI details" },
+              { id: "profile", label: "🏪 Profile", desc: "Branding & UPI details" },
+              { id: "payments", label: "💳 Razorpay Keys", desc: "Configure custom keys" },
               { id: "system", label: "⚙️ System & Seating", desc: "Dine-in, theme & resets" },
               { id: "qr", label: "📱 QR Operations", desc: "Print table links" },
               { id: "account", label: "🚪 Account Control", desc: "Logout & session" },
@@ -309,7 +343,62 @@ function SettingsPageContent() {
               </section>
             )}
 
+            {activeTab === "payments" && (
+              <section className="space-y-4 no-print">
+                <div className="border-b-2 border-black pb-1.5">
+                  <h3 className="text-md font-display font-black uppercase text-black tracking-tight flex items-center gap-1.5">
+                    💳 Razorpay Credentials
+                  </h3>
+                  <p className="text-black/60 text-[10px] font-black uppercase tracking-wider">
+                    Enter your Razorpay API details. If left empty, checkout falls back to standard UPI.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSaveSecrets} className="space-y-6">
+                  <div className="bg-white border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000] rounded-none space-y-4">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-black uppercase tracking-wider text-black">
+                        Razorpay Key ID
+                      </label>
+                      <input
+                        type="text"
+                        value={rpayKeyId}
+                        onChange={(e) => setRpayKeyId(e.target.value)}
+                        className="w-full bg-white border-2 border-black p-2.5 font-bold text-sm shadow-[2px_2px_0px_0px_#000] focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_#000] transition-all outline-none rounded-none"
+                        placeholder="e.g. rzp_test_xxxxxxxxxxxxxx"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-xs font-black uppercase tracking-wider text-black">
+                        Razorpay Key Secret
+                      </label>
+                      <input
+                        type="password"
+                        value={rpayKeySecret}
+                        onChange={(e) => setRpayKeySecret(e.target.value)}
+                        className="w-full bg-white border-2 border-black p-2.5 font-bold text-sm shadow-[2px_2px_0px_0px_#000] focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_#000] transition-all outline-none rounded-none"
+                        placeholder={rpayKeySecret ? "••••••••••••••••" : "Enter Key Secret"}
+                      />
+                      <p className="text-[10px] font-bold text-black/55 uppercase tracking-wide">
+                        This is encrypted securely on our database and cannot be read by customers.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={savingSecrets}
+                    className="w-full min-h-12 border-3 border-black bg-accent text-white font-display font-black text-sm uppercase shadow-[4px_4px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {savingSecrets ? "Saving Credentials..." : "💾 Save Razorpay Keys"}
+                  </button>
+                </form>
+              </section>
+            )}
+
             {activeTab === "system" && (
+
               <section className="space-y-4 no-print">
                 <div className="border-b-2 border-black pb-1.5">
                   <h3 className="text-md font-display font-black uppercase text-black tracking-tight flex items-center gap-1.5">

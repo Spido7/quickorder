@@ -34,7 +34,9 @@ export async function generateMetadata({
   };
 }
 
-// ─── Server Component: fetch data, hand off to client ────────────────────────
+import Script from "next/script";
+
+// Server Component: fetch data, hand off to client ────────────────────────
 export default async function MenuPage({
   params,
   searchParams,
@@ -74,11 +76,18 @@ export default async function MenuPage({
   if (cafeError || !cafe) notFound();
 
   return (
-    <MenuClient
-      cafe={cafe}
-      items={items ?? []}
-      categories={categories ?? []}
-      initialTable={table}
-    />
+    <>
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="lazyOnload"
+      />
+      <MenuClient
+        cafe={cafe}
+        items={items ?? []}
+        categories={categories ?? []}
+        initialTable={table}
+      />
+    </>
   );
 }
+
