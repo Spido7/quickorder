@@ -280,6 +280,11 @@ function CheckoutSheet({
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Mock Payment states
+  const [showMockPayment, setShowMockPayment] = useState(false);
+  const [mockPaymentData, setMockPaymentData] = useState<any>(null);
+  const [mockOrderData, setMockOrderData] = useState<Order | null>(null);
+
   // Promo code states
   const [promoCode, setPromoCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discountAmount: number } | null>(null);
@@ -458,6 +463,14 @@ function CheckoutSheet({
       const res = await response.json();
       if (!response.ok || !res.success) {
         throw new Error(res?.error || "Failed to initialize Razorpay payment. Please try again.");
+      }
+
+      if (res.keyId === "rzp_test_mock") {
+        setMockPaymentData(res);
+        setMockOrderData(newOrder);
+        setShowMockPayment(true);
+        setLoading(false);
+        return;
       }
 
       // Run Razorpay Checkout modal
@@ -851,6 +864,87 @@ function CheckoutSheet({
           )}
         </div>
       </div>
+
+      {showMockPayment && mockPaymentData && mockOrderData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+          <div className="bg-white border-4 border-black p-6 w-full max-w-sm shadow-[8px_8px_0px_0px_#000] space-y-5 text-black">
+            <div className="border-b-2 border-black pb-2">
+              <h3 className="font-display font-black text-lg uppercase tracking-tight">
+                💳 Razorpay Simulator
+              </h3>
+              <p className="text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                Developer Test Mode (Zero-Dependency)
+              </p>
+            </div>
+            
+            <div className="space-y-1 text-sm font-bold uppercase tracking-wider">
+              <div className="flex justify-between">
+                <span className="text-black/55">Order ID:</span>
+                <span>#{mockOrderData.id.slice(0, 8)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-black/55">Amount:</span>
+                <span className="text-accent font-black">₹{finalTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={async () => {
+                  setShowMockPayment(false);
+                  setLoading(true);
+                  try {
+                    const verifyResponse = await fetch("/api/razorpay/verify", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        razorpay_order_id: mockPaymentData.orderId,
+                        razorpay_payment_id: "pay_mock_" + Math.random().toString(36).substring(2, 11),
+                        razorpay_signature: "mock_signature_valid",
+                        orderId: mockOrderData.id,
+                        cafeId: cafe.id,
+                      }),
+                    });
+                    const verifyResult = await verifyResponse.json();
+                    if (verifyResult.success) {
+                      const updatedOrder = { ...mockOrderData, order_status: "preparing" as any };
+                      setPlacedOrder(updatedOrder);
+                      setStep("submitted");
+                      onOrderPlaced(updatedOrder);
+                    } else {
+                      throw new Error(verifyResult.error || "Mock verification failed");
+                    }
+                  } catch (err: any) {
+                    setError(err.message || "Failed to verify mock signature.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full min-h-11 bg-success text-white font-display font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+              >
+                🟢 Simulate Payment Success
+              </button>
+              <button
+                onClick={() => {
+                  setShowMockPayment(false);
+                  setError("Mock payment was declined or cancelled by the user.");
+                }}
+                className="w-full min-h-11 bg-danger text-white font-display font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+              >
+                🔴 Simulate Payment Failure
+              </button>
+              <button
+                onClick={() => {
+                  setShowMockPayment(false);
+                }}
+                className="w-full min-h-11 bg-white text-black font-display font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+              >
+                ✕ Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

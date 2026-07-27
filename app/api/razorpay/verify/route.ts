@@ -64,10 +64,32 @@ export async function POST(req: Request) {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
+      // If mock payment is used, we can complete order even if admin keys are missing locally
+      if (razorpay_order_id.startsWith("order_mock")) {
+        return NextResponse.json({ success: false, error: "Supabase admin credentials are missing but mock mode requires them to write to public.orders. Please add SUPABASE_SERVICE_ROLE_KEY." }, { status: 500 });
+      }
       throw new Error("Supabase admin credentials are not configured on the server");
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Bypassing cryptographic validation for simulated mock payments
+    if (razorpay_order_id.startsWith("order_mock") && razorpay_signature === "mock_signature_valid") {
+      const { error: updateError } = await supabaseAdmin
+        .from("orders")
+        .update({
+          order_status: "preparing",
+          payment_status: "paid",
+        })
+        .eq("id", orderId);
+
+      if (updateError) {
+        console.error("Supabase order update error:", updateError);
+        throw new Error("Failed to update order status in database");
+      }
+
+      return NextResponse.json({ success: true });
+    }
 
     // 2. Fetch the cafe secrets to get key_secret
     const { data: secrets, error: secretsError } = await supabaseAdmin

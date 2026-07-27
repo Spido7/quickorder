@@ -15,11 +15,23 @@ export async function POST(req: Request) {
       );
     }
 
+    const isMockMode = process.env.NEXT_PUBLIC_MOCK_PAYMENTS === "true";
+
     // 1. Initialize Supabase Admin Client using Service Role Key to read cafe_secrets (bypassing RLS)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
+      if (isMockMode) {
+        return NextResponse.json({
+          success: true,
+          id: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          orderId: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          amount: Math.round(amount * 100),
+          currency: "INR",
+          keyId: "rzp_test_mock",
+        });
+      }
       throw new Error("Supabase admin credentials are not configured on the server");
     }
 
@@ -33,6 +45,16 @@ export async function POST(req: Request) {
       .single();
 
     if (secretsError || !secrets) {
+      if (isMockMode) {
+        return NextResponse.json({
+          success: true,
+          id: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          orderId: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          amount: Math.round(amount * 100),
+          currency: "INR",
+          keyId: "rzp_test_mock",
+        });
+      }
       return NextResponse.json(
         { success: false, error: "Razorpay is not configured for this cafe" },
         { status: 400 }
@@ -42,6 +64,16 @@ export async function POST(req: Request) {
     const { razorpay_key_id: keyId, razorpay_key_secret: encryptedSecret } = secrets;
 
     if (!keyId || !encryptedSecret) {
+      if (isMockMode) {
+        return NextResponse.json({
+          success: true,
+          id: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          orderId: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          amount: Math.round(amount * 100),
+          currency: "INR",
+          keyId: "rzp_test_mock",
+        });
+      }
       return NextResponse.json(
         { success: false, error: "Razorpay credentials are incomplete for this cafe" },
         { status: 400 }
@@ -49,7 +81,22 @@ export async function POST(req: Request) {
     }
 
     // 3. Decrypt the secret key using our Edge-native decrypt utility
-    const decryptedSecret = await decrypt(encryptedSecret);
+    let decryptedSecret;
+    try {
+      decryptedSecret = await decrypt(encryptedSecret);
+    } catch (err) {
+      if (isMockMode) {
+        return NextResponse.json({
+          success: true,
+          id: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          orderId: "order_mock_" + Math.random().toString(36).substring(2, 11),
+          amount: Math.round(amount * 100),
+          currency: "INR",
+          keyId: "rzp_test_mock",
+        });
+      }
+      throw err;
+    }
 
     // 4. Initialize order via native fetch to Razorpay API (no npm package)
     const authString = btoa(`${keyId}:${decryptedSecret}`);
@@ -76,8 +123,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      id: rpayData.id,        // Backward compatibility
-      orderId: rpayData.id,   // Razorpay's generated order ID
+      id: rpayData.id,
+      orderId: rpayData.id,
       amount: rpayData.amount,
       currency: rpayData.currency,
       keyId: keyId,
