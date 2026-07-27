@@ -301,19 +301,7 @@ function SettingsPageContent() {
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="block text-xs font-black uppercase tracking-wider text-black">
-                        UPI ID (For Payments)
-                      </label>
-                      <input
-                        type="text"
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                        required
-                        className="w-full bg-white border-2 border-black p-2.5 font-bold text-sm shadow-[2px_2px_0px_0px_#000] focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_#000] transition-all outline-none rounded-none"
-                        placeholder="e.g. merchant@upi"
-                      />
-                    </div>
+
 
                     <div className="space-y-1">
                       <label className="block text-xs font-black uppercase tracking-wider text-black">
