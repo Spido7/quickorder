@@ -9,7 +9,7 @@ import MenuClient from "./MenuClient";
 // ─── Types for this page ──────────────────────────────────────────────────────
 // We only select what the customer page actually needs
 type PublicCafe = Pick<Cafe, "id" | "business_name" | "upi_id" | "has_seating">;
-type PublicMenuItem = Pick<MenuItem, "id" | "name" | "price" | "is_available" | "category_id">;
+type PublicMenuItem = Pick<MenuItem, "id" | "name" | "price" | "is_available" | "category_id" | "has_variants" | "variants">;
 type PublicCategory = { id: string; name: string; sort_order: number };
 
 // ─── Dynamic metadata ─────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ export default async function MenuPage({
       .single<PublicCafe>(),
     supabase
       .from("menu_items")
-      .select("id, name, price, is_available, category_id")
+      .select("id, name, price, is_available, category_id, has_variants, variants")
       .eq("cafe_id", cafeId)
       .order("name")
       .returns<PublicMenuItem[]>(),

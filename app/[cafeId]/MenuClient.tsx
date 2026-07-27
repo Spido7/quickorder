@@ -20,6 +20,8 @@ interface PublicMenuItem {
   price: number;
   is_available: boolean;
   category_id?: string | null;
+  has_variants?: boolean;
+  variants?: { name: string; price: number }[] | null;
 }
 
 interface Props {
@@ -69,74 +71,144 @@ const MenuItemRow = memo(function MenuItemRow({
   quantity: number;
   dispatch: React.Dispatch<CartAction>;
 }) {
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<{name: string; price: number} | null>(null);
+
   const add = useCallback(
     () => {
       if (!item.is_available) return;
-      dispatch({ type: "ADD", item: { id: item.id, name: item.name, price: item.price } }),
-      [dispatch, item]
+      if (item.has_variants) {
+        setIsVariantModalOpen(true);
+        if (item.variants && item.variants.length > 0 && !selectedVariant) {
+          setSelectedVariant(item.variants[0]);
+        }
+        return;
+      }
+      dispatch({ type: "ADD", item: { id: item.id, name: item.name, price: item.price } });
     },
-    [dispatch, item]
+    [dispatch, item, selectedVariant]
   );
+
+  const handleVariantAdd = () => {
+    if (!selectedVariant) return;
+    const compositeId = `${item.id}-${selectedVariant.name}`;
+    const compositeName = `${item.name} (${selectedVariant.name})`;
+    dispatch({ type: "ADD", item: { id: compositeId, name: compositeName, price: selectedVariant.price } });
+    setIsVariantModalOpen(false);
+  };
+
   const remove = useCallback(
     () => dispatch({ type: "REMOVE", id: item.id }),
     [dispatch, item.id]
   );
 
   return (
-    <div
-      className={`flex items-center gap-4 py-4 border-b-2 border-black bg-white px-4 my-2 border-2 shadow-[2px_2px_0px_0px_#000] transition-all ${
-        !item.is_available ? "opacity-50 grayscale" : ""
-      }`}
-    >
-      {/* Item info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-black font-display font-bold text-base leading-snug">{item.name}</p>
-          {!item.is_available && (
-            <span className="bg-black text-white px-2 py-0.5 text-[10px] uppercase font-black tracking-wider rounded-none border border-black shadow-[1px_1px_0px_0px_#000]">
-              Sold Out
-            </span>
-          )}
+    <>
+      <div
+        className={`flex items-center gap-4 py-4 border-b-2 border-black bg-white px-4 my-2 border-2 shadow-[2px_2px_0px_0px_#000] transition-all ${
+          !item.is_available ? "opacity-50 grayscale" : ""
+        }`}
+      >
+        {/* Item info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-black font-display font-bold text-base leading-snug">{item.name}</p>
+            {!item.is_available && (
+              <span className="bg-black text-white px-2 py-0.5 text-[10px] uppercase font-black tracking-wider rounded-none border border-black shadow-[1px_1px_0px_0px_#000]">
+                Sold Out
+              </span>
+            )}
+          </div>
+          <p className="text-accent font-sans font-bold text-sm mt-0.5">
+            {item.has_variants ? `From ₹${item.price}` : `₹${item.price}`}
+          </p>
         </div>
-        <p className="text-accent font-sans font-bold text-sm mt-0.5">₹{item.price}</p>
-      </div>
 
-      {/* Qty controls */}
-      {quantity === 0 ? (
-        <button
-          onClick={add}
-          disabled={!item.is_available}
-          aria-label={item.is_available ? `Add ${item.name}` : `${item.name} is Out of Stock`}
-          className={
-            item.is_available
-              ? "w-10 h-10 bg-warning text-black text-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
-              : "px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-black uppercase tracking-wider border-2 border-black cursor-not-allowed flex items-center justify-center rounded-none shadow-none"
-          }
-        >
-          {item.is_available ? "+" : "Out of Stock"}
-        </button>
-      ) : (
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={remove}
-            aria-label="Remove one"
-            className="w-10 h-10 bg-white text-black text-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
-          >
-            −
-          </button>
-          <span className="w-5 text-center text-black font-bold text-base font-sans">
-            {quantity}
-          </span>
+        {/* Qty controls */}
+        {quantity === 0 || item.has_variants ? (
           <button
             onClick={add}
-            aria-label="Add one more"
-            className="w-10 h-10 bg-accent text-white text-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+            disabled={!item.is_available}
+            aria-label={item.is_available ? `Add ${item.name}` : `${item.name} is Out of Stock`}
+            className={
+              item.is_available
+                ? `h-10 ${item.has_variants ? "px-3 bg-white text-accent text-sm uppercase tracking-wider" : "w-10 bg-warning text-black text-xl"} font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer`
+                : "px-3 py-1.5 bg-gray-300 text-gray-500 text-xs font-black uppercase tracking-wider border-2 border-black cursor-not-allowed flex items-center justify-center rounded-none shadow-none"
+            }
           >
-            +
+            {item.is_available ? (item.has_variants ? "Customize +" : "+") : "Out of Stock"}
           </button>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={remove}
+              aria-label="Remove one"
+              className="w-10 h-10 bg-white text-black text-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+            >
+              −
+            </button>
+            <span className="w-5 text-center text-black font-bold text-base font-sans">
+              {quantity}
+            </span>
+            <button
+              onClick={add}
+              aria-label="Add one more"
+              className="w-10 h-10 bg-accent text-white text-xl font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+            >
+              +
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Variant Selector Modal */}
+      {isVariantModalOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-end md:justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white border-t-4 border-black md:border-4 shadow-none md:shadow-[6px_6px_0px_0px_#000] rounded-t-2xl md:rounded-none overflow-hidden animate-in slide-in-from-bottom-full md:zoom-in-95 duration-300">
+            <div className="flex items-center justify-between p-4 border-b-2 border-black bg-zinc-50">
+              <h3 className="text-black font-display font-black text-lg uppercase tracking-tight">Customize {item.name}</h3>
+              <button
+                onClick={() => setIsVariantModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center bg-white border-2 border-black shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all text-black font-black"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+              {item.variants?.map((v, i) => (
+                <label
+                  key={i}
+                  className={`flex items-center justify-between p-4 border-2 border-black cursor-pointer transition-all ${
+                    selectedVariant?.name === v.name
+                      ? "bg-accent text-white shadow-[inset_4px_4px_0px_0px_rgba(0,0,0,0.2)]"
+                      : "bg-white text-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000]"
+                  }`}
+                  onClick={() => setSelectedVariant(v)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedVariant?.name === v.name ? "border-white bg-black" : "border-black bg-white"}`}>
+                      {selectedVariant?.name === v.name && <div className="w-2 h-2 bg-white rounded-full" />}
+                    </div>
+                    <span className="font-bold text-base">{v.name}</span>
+                  </div>
+                  <span className="font-bold">₹{v.price}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="p-4 border-t-2 border-black bg-white">
+              <button
+                onClick={handleVariantAdd}
+                className="w-full py-4 bg-success text-white border-2 border-black font-display font-black uppercase tracking-tight text-lg shadow-[4px_4px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
+              >
+                Add to Order — ₹{selectedVariant?.price || 0}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 });
 

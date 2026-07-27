@@ -10,6 +10,11 @@ export interface Cafe {
   table_count: number | null;
 }
 
+export interface ItemVariant {
+  name: string;
+  price: number;
+}
+
 export interface MenuItem {
   id: string;
   cafe_id: string;
@@ -18,6 +23,8 @@ export interface MenuItem {
   is_available: boolean;
   category?: string | null;
   category_id?: string | null;
+  has_variants?: boolean;
+  variants?: ItemVariant[] | null;
 }
 
 export type OrderStatus = "pending" | "preparing" | "done" | "cancelled";

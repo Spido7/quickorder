@@ -409,6 +409,8 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const [newItemName, setNewItemName] = useState("");
   const [newItemPrice, setNewItemPrice] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("General");
+  const [newItemHasVariants, setNewItemHasVariants] = useState(false);
+  const [newItemVariants, setNewItemVariants] = useState<{name: string; price: number}[]>([]);
   const [addError, setAddError] = useState<string | null>(null);
   const [addingItem, setAddingItem] = useState(false);
 
@@ -424,6 +426,8 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const [editItemName, setEditItemName] = useState("");
   const [editItemPrice, setEditItemPrice] = useState("");
   const [editItemCategoryId, setEditItemCategoryId] = useState("");
+  const [editItemHasVariants, setEditItemHasVariants] = useState(false);
+  const [editItemVariants, setEditItemVariants] = useState<{name: string; price: number}[]>([]);
   const [updatingItem, setUpdatingItem] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -466,6 +470,8 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const [counterPaymentMethod, setCounterPaymentMethod] = useState<"cash" | "razorpay">("cash");
   const [counterSubmitting, setCounterSubmitting] = useState(false);
   const [counterError, setCounterError] = useState<string | null>(null);
+  const [counterVariantModalItem, setCounterVariantModalItem] = useState<MenuItem | null>(null);
+  const [counterSelectedVariant, setCounterSelectedVariant] = useState<{name: string; price: number} | null>(null);
 
   // Razorpay states for counter modal (mock simulator)
   const [showCounterMockPayment, setShowCounterMockPayment] = useState(false);
@@ -489,6 +495,13 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   };
 
   const addToCounterCart = (item: MenuItem) => {
+    if (item.has_variants) {
+      setCounterVariantModalItem(item);
+      if (item.variants && item.variants.length > 0) {
+        setCounterSelectedVariant(item.variants[0]);
+      }
+      return;
+    }
     setCounterCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
       if (existing) {
@@ -496,6 +509,25 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
       }
       return [...prev, { id: item.id, name: item.name, price: item.price, quantity: 1 }];
     });
+  };
+
+  const handleCounterVariantAdd = () => {
+    if (!counterVariantModalItem || !counterSelectedVariant) return;
+    const item = counterVariantModalItem;
+    const v = counterSelectedVariant;
+    const compositeId = `${item.id}-${v.name}`;
+    const compositeName = `${item.name} (${v.name})`;
+    
+    setCounterCart((prev) => {
+      const existing = prev.find((i) => i.id === compositeId);
+      if (existing) {
+        return prev.map((i) => (i.id === compositeId ? { ...i, quantity: i.quantity + 1 } : i));
+      }
+      return [...prev, { id: compositeId, name: compositeName, price: v.price, quantity: 1 }];
+    });
+    
+    setCounterVariantModalItem(null);
+    setCounterSelectedVariant(null);
   };
 
   const removeFromCounterCart = (itemId: string) => {
@@ -741,14 +773,25 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
 
   const handleAddMenuItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newItemName.trim() || !newItemPrice.trim()) return;
+    if (!newItemName.trim() || (!newItemHasVariants && !newItemPrice.trim())) return;
     setAddingItem(true);
     setAddError(null);
 
     try {
-      const priceVal = parseFloat(newItemPrice);
-      if (isNaN(priceVal) || priceVal <= 0) {
-        throw new Error("Price must be a positive number");
+      let finalPrice = 0;
+      if (newItemHasVariants) {
+        if (newItemVariants.length === 0) {
+          throw new Error("At least one portion/size is required");
+        }
+        if (newItemVariants.some(v => !v.name.trim() || isNaN(v.price) || v.price <= 0)) {
+          throw new Error("All portions must have a valid name and positive price");
+        }
+        finalPrice = Math.min(...newItemVariants.map(v => v.price));
+      } else {
+        finalPrice = parseFloat(newItemPrice);
+        if (isNaN(finalPrice) || finalPrice <= 0) {
+          throw new Error("Price must be a positive number");
+        }
       }
 
       const selectedCatName = categories.find((c) => c.id === newItemCategoryId)?.name || "General";
@@ -758,10 +801,12 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
         .insert({
           cafe_id: cafeId,
           name: newItemName.trim(),
-          price: priceVal,
+          price: finalPrice,
           category: selectedCatName,
           category_id: newItemCategoryId || null,
           is_available: true,
+          has_variants: newItemHasVariants,
+          variants: newItemHasVariants ? newItemVariants : [],
         })
         .select()
         .single();
@@ -774,6 +819,8 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
         setNewItemName("");
         setNewItemPrice("");
         setNewItemCategoryId("");
+        setNewItemHasVariants(false);
+        setNewItemVariants([]);
       }
     } catch (err: any) {
       setAddError(err.message || "Failed to add menu item");
@@ -843,20 +890,33 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
     setEditItemName(item.name);
     setEditItemPrice(String(item.price));
     setEditItemCategoryId(item.category_id || "");
+    setEditItemHasVariants(item.has_variants || false);
+    setEditItemVariants(item.variants || []);
     setEditError(null);
     setIsEditModalOpen(true);
   };
 
   const handleEditMenuItemSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editItemName.trim() || !editItemPrice.trim()) return;
+    if (!editItemName.trim() || (!editItemHasVariants && !editItemPrice.trim())) return;
     setUpdatingItem(true);
     setEditError(null);
 
     try {
-      const priceVal = parseFloat(editItemPrice);
-      if (isNaN(priceVal) || priceVal <= 0) {
-        throw new Error("Price must be a positive number");
+      let finalPrice = 0;
+      if (editItemHasVariants) {
+        if (editItemVariants.length === 0) {
+          throw new Error("At least one portion/size is required");
+        }
+        if (editItemVariants.some(v => !v.name.trim() || isNaN(v.price) || v.price <= 0)) {
+          throw new Error("All portions must have a valid name and positive price");
+        }
+        finalPrice = Math.min(...editItemVariants.map(v => v.price));
+      } else {
+        finalPrice = parseFloat(editItemPrice);
+        if (isNaN(finalPrice) || finalPrice <= 0) {
+          throw new Error("Price must be a positive number");
+        }
       }
 
       const selectedCatName = categories.find((c) => c.id === editItemCategoryId)?.name || "General";
@@ -865,9 +925,11 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
         .from("menu_items")
         .update({
           name: editItemName.trim(),
-          price: priceVal,
+          price: finalPrice,
           category: selectedCatName,
           category_id: editItemCategoryId || null,
+          has_variants: editItemHasVariants,
+          variants: editItemHasVariants ? editItemVariants : [],
         })
         .eq("id", editItemId)
         .select()
@@ -1417,7 +1479,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
       {/* Add Menu Item Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200 text-black">
+          <div className="w-full max-w-[26rem] bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200 text-black">
             <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
               <h3 className="text-black font-display font-black text-lg uppercase tracking-tight">Add Menu Item</h3>
               <button 
@@ -1447,38 +1509,105 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                 />
               </div>
 
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Price (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    min="0.01"
-                    step="0.01"
-                    value={newItemPrice}
-                    onChange={(e) => setNewItemPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm placeholder:text-gray-400"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Category</label>
-                  <select
-                    value={newItemCategoryId}
-                    onChange={(e) => setNewItemCategoryId(e.target.value)}
-                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
-                  >
-                    <option value="">Uncategorized</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Category</label>
+                <select
+                  value={newItemCategoryId}
+                  onChange={(e) => setNewItemCategoryId(e.target.value)}
+                  className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
+                >
+                  <option value="">Uncategorized</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="border-2 border-dashed border-black/30 p-3 space-y-3">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <div className={`w-5 h-5 border-2 border-black flex items-center justify-center transition-colors ${newItemHasVariants ? "bg-accent" : "bg-white"}`}>
+                    {newItemHasVariants && <span className="text-white text-xs font-black">✓</span>}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={newItemHasVariants}
+                    onChange={(e) => setNewItemHasVariants(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <span className="text-sm font-bold text-black">Has Portions / Sizes?</span>
+                </label>
+
+                {!newItemHasVariants ? (
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Price (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      min="0.01"
+                      step="0.01"
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm placeholder:text-gray-400"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-black/60">Portion Name &amp; Price</label>
+                    {newItemVariants.map((v, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          required
+                          value={v.name}
+                          onChange={(e) => {
+                            const updated = [...newItemVariants];
+                            updated[i] = { ...updated[i], name: e.target.value };
+                            setNewItemVariants(updated);
+                          }}
+                          placeholder="e.g. Half"
+                          className="flex-1 min-w-0 min-h-9 px-2.5 border-2 border-black bg-white text-black font-bold text-sm focus:outline-none focus:border-accent placeholder:text-gray-400"
+                        />
+                        <div className="relative shrink-0">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-black/40 font-bold text-xs pointer-events-none">₹</span>
+                          <input
+                            type="number"
+                            required
+                            min="0.01"
+                            step="0.01"
+                            value={v.price || ""}
+                            onChange={(e) => {
+                              const updated = [...newItemVariants];
+                              updated[i] = { ...updated[i], price: parseFloat(e.target.value) };
+                              setNewItemVariants(updated);
+                            }}
+                            placeholder="0"
+                            className="w-20 min-h-9 pl-6 pr-1.5 border-2 border-black bg-white text-black font-bold text-sm focus:outline-none focus:border-accent placeholder:text-gray-400"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setNewItemVariants(newItemVariants.filter((_, idx) => idx !== i))}
+                          className="w-8 h-8 bg-white text-danger border-2 border-black flex items-center justify-center cursor-pointer hover:bg-danger hover:text-white transition-colors font-bold text-xs shrink-0"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setNewItemVariants([...newItemVariants, { name: "", price: 0 }])}
+                      className="w-full min-h-10 border-2 border-dashed border-black/40 text-accent font-bold text-xs uppercase tracking-wider hover:border-accent hover:bg-accent/5 transition-colors cursor-pointer"
+                    >
+                      + Add Portion
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
@@ -1506,7 +1635,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
       {/* Edit Menu Item Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200 text-black">
+          <div className="w-full max-w-[26rem] bg-white border-3 border-black p-6 shadow-[6px_6px_0px_0px_#000] rounded-none animate-in fade-in zoom-in-95 duration-200 text-black">
             <div className="flex items-center justify-between mb-4 border-b-2 border-black pb-2">
               <h3 className="text-black font-display font-black text-lg uppercase tracking-tight">Edit Menu Item</h3>
               <button 
@@ -1536,38 +1665,105 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                 />
               </div>
 
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Price (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    min="0.01"
-                    step="0.01"
-                    value={editItemPrice}
-                    onChange={(e) => setEditItemPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Category</label>
-                  <select
-                    value={editItemCategoryId}
-                    onChange={(e) => setEditItemCategoryId(e.target.value)}
-                    className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
-                  >
-                    <option value="">Uncategorized</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Category</label>
+                <select
+                  value={editItemCategoryId}
+                  onChange={(e) => setEditItemCategoryId(e.target.value)}
+                  className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
+                >
+                  <option value="">Uncategorized</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="border-2 border-dashed border-black/30 p-3 space-y-3">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <div className={`w-5 h-5 border-2 border-black flex items-center justify-center transition-colors ${editItemHasVariants ? "bg-accent" : "bg-white"}`}>
+                    {editItemHasVariants && <span className="text-white text-xs font-black">✓</span>}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editItemHasVariants}
+                    onChange={(e) => setEditItemHasVariants(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <span className="text-sm font-bold text-black">Has Portions / Sizes?</span>
+                </label>
+
+                {!editItemHasVariants ? (
+                  <div>
+                    <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">Price (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      min="0.01"
+                      step="0.01"
+                      value={editItemPrice}
+                      onChange={(e) => setEditItemPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full min-h-11 px-3 border-2 border-black bg-white text-black font-bold focus:outline-none focus:border-accent rounded-none shadow-[2px_2px_0px_0px_#000] text-sm"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-black/60">Portion Name &amp; Price</label>
+                    {editItemVariants.map((v, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          required
+                          value={v.name}
+                          onChange={(e) => {
+                            const updated = [...editItemVariants];
+                            updated[i] = { ...updated[i], name: e.target.value };
+                            setEditItemVariants(updated);
+                          }}
+                          placeholder="e.g. Half"
+                          className="flex-1 min-w-0 min-h-9 px-2.5 border-2 border-black bg-white text-black font-bold text-sm focus:outline-none focus:border-accent placeholder:text-gray-400"
+                        />
+                        <div className="relative shrink-0">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-black/40 font-bold text-xs pointer-events-none">₹</span>
+                          <input
+                            type="number"
+                            required
+                            min="0.01"
+                            step="0.01"
+                            value={v.price || ""}
+                            onChange={(e) => {
+                              const updated = [...editItemVariants];
+                              updated[i] = { ...updated[i], price: parseFloat(e.target.value) };
+                              setEditItemVariants(updated);
+                            }}
+                            placeholder="0"
+                            className="w-20 min-h-9 pl-6 pr-1.5 border-2 border-black bg-white text-black font-bold text-sm focus:outline-none focus:border-accent placeholder:text-gray-400"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditItemVariants(editItemVariants.filter((_, idx) => idx !== i))}
+                          className="w-8 h-8 bg-white text-danger border-2 border-black flex items-center justify-center cursor-pointer hover:bg-danger hover:text-white transition-colors font-bold text-xs shrink-0"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setEditItemVariants([...editItemVariants, { name: "", price: 0 }])}
+                      className="w-full min-h-10 border-2 border-dashed border-black/40 text-accent font-bold text-xs uppercase tracking-wider hover:border-accent hover:bg-accent/5 transition-colors cursor-pointer"
+                    >
+                      + Add Portion
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
@@ -1753,7 +1949,9 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                                     >
                                       <div className="min-w-0 pr-2">
                                         <p className="font-bold text-xs uppercase tracking-tight truncate text-black">{item.name}</p>
-                                        <p className="text-accent font-black text-xs mt-0.5">₹{item.price}</p>
+                                        <p className="text-accent font-black text-xs mt-0.5">
+                                          {item.has_variants ? `From ₹${item.price}` : `₹${item.price}`}
+                                        </p>
                                       </div>
                                       <span className="text-lg text-black font-black font-sans shrink-0 bg-zinc-100 hover:bg-warning border border-black w-6 h-6 flex items-center justify-center">+</span>
                                     </button>
@@ -1783,7 +1981,9 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                                     >
                                       <div className="min-w-0 pr-2">
                                         <p className="font-bold text-xs uppercase tracking-tight truncate text-black">{item.name}</p>
-                                        <p className="text-accent font-black text-xs mt-0.5">₹{item.price}</p>
+                                        <p className="text-accent font-black text-xs mt-0.5">
+                                          {item.has_variants ? `From ₹${item.price}` : `₹${item.price}`}
+                                        </p>
                                       </div>
                                       <span className="text-lg text-black font-black font-sans shrink-0 bg-zinc-100 hover:bg-warning border border-black w-6 h-6 flex items-center justify-center">+</span>
                                     </button>
