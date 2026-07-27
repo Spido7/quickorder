@@ -433,53 +433,20 @@ function SettingsPageContent() {
                 {/* QR Codes Generator Card */}
                 <div className="bg-white border-3 border-black p-5 shadow-[6px_6px_0px_0px_#000] rounded-none space-y-4">
                   <div className="space-y-4">
-                    <div className="flex gap-4">
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-xs font-black uppercase tracking-wider text-black">
-                          Select Table
-                        </label>
-                        <select
-                          value={selectedTable}
-                          onChange={(e) => setSelectedTable(e.target.value)}
-                          className="w-full bg-white border-2 border-black p-2.5 font-bold text-sm shadow-[2px_2px_0px_0px_#000] focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_#000] transition-all outline-none rounded-none cursor-pointer"
-                        >
-                          <option value="0">Counter (Takeaway)</option>
-                          {hasSeating && tableCount > 0 && Array.from({ length: tableCount }, (_, i) => {
-                            const num = String(i + 1);
-                            return <option key={num} value={num}>Table {num}</option>;
-                          })}
-                        </select>
-                      </div>
-                      
-                      <div className="flex-1 space-y-1">
-                        <label className="block text-xs font-black uppercase tracking-wider text-black">
-                          Print Mode
-                        </label>
-                        <select
-                          value={printMode}
-                          onChange={(e) => setPrintMode(e.target.value as "single" | "all")}
-                          className="w-full bg-white border-2 border-black p-2.5 font-bold text-sm shadow-[2px_2px_0px_0px_#000] focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-[1px_1px_0px_0px_#000] transition-all outline-none rounded-none cursor-pointer"
-                        >
-                          <option value="single">Selected Table Only</option>
-                          <option value="all">All Tables (Sheet)</option>
-                        </select>
-                      </div>
-                    </div>
-
                     {/* QR Preview Block */}
                     <div className="flex flex-col items-center justify-center p-6 border-2 border-black bg-zinc-50 shadow-[4px_4px_0px_0px_#000]">
                       <div id="qr-container" className="p-3 bg-white border-2 border-black mb-3">
                         <QRCode
-                          value={`${origin || "https://quickorder.pages.dev"}/${cafeId}?table=${selectedTable}`}
+                          value={`${origin || "https://quickorder.pages.dev"}/${cafeId}`}
                           size={140}
                           level="H"
                         />
                       </div>
                       <p className="font-display font-black text-xs uppercase tracking-wider text-black bg-warning border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_#000] mb-2">
-                        {selectedTable === "0" ? "COUNTER" : `TABLE ${selectedTable}`}
+                        OFFICIAL MENU QR
                       </p>
                       <p className="text-[10px] font-black uppercase text-black/60 tracking-widest truncate max-w-full px-2 text-center">
-                        {origin || "https://quickorder.pages.dev"}/{cafeId}?table={selectedTable}
+                        {origin || "https://quickorder.pages.dev"}/{cafeId}
                       </p>
                     </div>
 

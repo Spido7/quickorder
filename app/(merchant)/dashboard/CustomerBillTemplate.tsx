@@ -1,11 +1,13 @@
 import React from "react";
 
-interface ReceiptTemplateProps {
+interface CustomerBillTemplateProps {
   order: any;
   cafe: any;
 }
 
-export default function ReceiptTemplate({ order, cafe }: ReceiptTemplateProps) {
+export default function CustomerBillTemplate({ order, cafe }: CustomerBillTemplateProps) {
+  if (!order) return null;
+
   const formattedDate = order.created_at
     ? new Date(order.created_at).toLocaleString("en-IN", {
         timeZone: "Asia/Kolkata",
@@ -16,66 +18,28 @@ export default function ReceiptTemplate({ order, cafe }: ReceiptTemplateProps) {
 
   const isRoomDelivery = order.fulfillment_type === "room_delivery";
   const fulfillmentBadge = isRoomDelivery
-    ? `🚪 Room Delivery (Block ${order.hostel_block || order.block_number || "X"} - Room ${order.room_number || "Y"})`
+    ? `🚪 Room Delivery (Block ${order.hostel_block || "X"} - Room ${order.room_number || "Y"})`
     : "🏃 Counter Pick Up";
 
-  // Calculations for Bottom Section (Customer Invoice)
+  // Calculations for Customer Invoice
   const grandTotal = Number(order.total_amount || 0);
   const subtotal = grandTotal * 0.95;
   const cgst = grandTotal * 0.025;
   const sgst = grandTotal * 0.025;
 
+  const isPaid = order.payment_status?.toLowerCase() === "paid";
+
   return (
-    <div className="hidden print:block w-[80mm] p-2 text-black font-mono text-xs bg-white leading-normal">
-      {/* ─── TOP SECTION (Kitchen Order Ticket / KOT) ─── */}
-      <div className="text-center border-b border-dashed border-black pb-2 mb-2">
-        <h2 className="text-xs font-bold uppercase tracking-tight">KITCHEN ORDER TICKET (KOT)</h2>
-        <div className="flex justify-between text-[9px] mt-1">
-          <span>KOT ID: #{order.id?.slice(0, 5)}</span>
-          <span>{formattedDate}</span>
-        </div>
-        
-        {/* High-contrast fulfillment badge */}
-        <div className="my-2 p-1 border-2 border-black bg-black text-white text-center font-bold text-[9px] uppercase tracking-wide">
-          {fulfillmentBadge}
-        </div>
-      </div>
-
-      {/* KOT Items List */}
-      <div className="mb-2">
-        <table className="w-full text-left text-[9px] border-collapse">
-          <thead>
-            <tr className="border-b border-black">
-              <th className="pb-1">Item</th>
-              <th className="pb-1 text-right">Qty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.cart_items?.map((item: any, idx: number) => (
-              <tr key={idx} className="border-b border-dotted border-gray-300">
-                <td className="py-1">
-                  <div className="font-bold">{item.name}</div>
-                  {item.notes && <div className="text-[8px] font-normal text-gray-700">Note: {item.notes}</div>}
-                </td>
-                <td className="py-1 text-right font-bold">{item.quantity}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ─── TEAR LINE ─── */}
-      <div className="text-center my-4 border-t border-b border-dashed border-black py-1 text-[8px] font-bold uppercase tracking-wider">
-        - - - - - - Tear KOT Here - - - - - -
-      </div>
-
-      {/* ─── BOTTOM SECTION (Customer Invoice) ─── */}
-      <div className="text-center pb-2 mb-2">
+    <div className="w-[80mm] p-2 text-black font-mono text-xs bg-white leading-normal">
+      <div className="text-center pb-2 mb-2 border-b border-black">
         <h1 className="text-xs font-bold uppercase">{cafe?.business_name || "QuickOrder Cafe"}</h1>
         {cafe?.address && <p className="text-[8px] leading-tight mb-1">{cafe.address}</p>}
+        {cafe?.gstin && <p className="text-[8px] font-bold">GSTIN: {cafe.gstin}</p>}
         
-        <div className="inline-block px-1 py-0.5 border border-black font-bold text-[8px] uppercase tracking-wider bg-white my-1">
-          ✓ PAID
+        <div className={`inline-block px-1.5 py-0.5 border font-bold text-[8px] uppercase tracking-wider my-1 ${
+          isPaid ? "border-green-600 text-green-600 bg-green-50" : "border-red-600 text-red-600 bg-red-50"
+        }`}>
+          {isPaid ? "✓ PAID" : "✗ UNPAID"}
         </div>
       </div>
 
@@ -89,11 +53,6 @@ export default function ReceiptTemplate({ order, cafe }: ReceiptTemplateProps) {
           <span>Date: {formattedDate}</span>
           <span>Type: {fulfillmentBadge}</span>
         </div>
-        {order.table_number && (
-          <div className="flex justify-between">
-            <span>Table/Room: {order.table_number}</span>
-          </div>
-        )}
       </div>
 
       {/* Invoice Items Table */}

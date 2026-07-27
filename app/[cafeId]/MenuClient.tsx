@@ -201,9 +201,19 @@ function InvoiceReceipt({ order, businessName }: { order: Order; businessName: s
           </div>
         )}
         <div className="flex justify-between">
-          <span className="text-zinc-600">Station:</span>
-          <span className="text-black">{order.table_number === "0" || !order.table_number ? "Counter / Takeaway" : `Table ${order.table_number}`}</span>
+          <span className="text-zinc-600">Fulfillment:</span>
+          <span className="text-black">
+            {order.fulfillment_type === "room_delivery"
+              ? `Room Delivery (Block ${order.hostel_block || "X"} - Room ${order.room_number || "Y"})`
+              : "Counter Pick Up"}
+          </span>
         </div>
+        {order.customer_name && (
+          <div className="flex justify-between mt-1">
+            <span className="text-zinc-600">Customer:</span>
+            <span className="text-black font-bold">{order.customer_name}</span>
+          </div>
+        )}
         <div className="flex justify-between items-center mt-1">
           <span className="text-zinc-600">Status:</span>
           <span className={`text-[10px] px-2 py-0.5 font-bold border-2 border-black ${status.color}`}>
@@ -274,7 +284,10 @@ function CheckoutSheet({
   onOrderPlaced: (order: Order) => void;
 }) {
   const [step, setStep] = useState<CheckoutStep>("summary");
-  const [identifier, setIdentifier] = useState(""); // table number or customer name
+  const [fulfillment, setFulfillment] = useState<"counter" | "room_delivery">("counter");
+  const [hostelBlock, setHostelBlock] = useState("");
+  const [roomNumber, setRoomNumber] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
@@ -314,7 +327,6 @@ function CheckoutSheet({
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const finalTotal = Math.max(0, total - discount);
 
-  // Reset sheet state whenever it opens
   useEffect(() => {
     if (isOpen) {
       setStep("summary");
@@ -330,18 +342,15 @@ function CheckoutSheet({
       setCustomTimeInput("");
       setActivePreset(null);
       setSchedulingError(null);
-      
-      // Auto-set from search param if scanning table QR
-      if (initialTable !== undefined) {
-        setIdentifier(initialTable);
-      } else {
-        setIdentifier("");
-      }
+      setFulfillment("counter");
+      setHostelBlock("");
+      setRoomNumber("");
+      setCustomerName("");
 
       // Small delay so animation completes before focusing
       setTimeout(() => inputRef.current?.focus(), 350);
     }
-  }, [isOpen, initialTable]);
+  }, [isOpen]);
 
   const label = cafe.has_seating ? "Table Number" : "Your Name";
   const placeholder = cafe.has_seating ? "e.g. 4" : "e.g. Rahul";
@@ -379,7 +388,11 @@ function CheckoutSheet({
   };
 
   const hasValidSchedule = scheduleOption === "now" || (scheduledTime !== null && !schedulingError);
-  const canPay = identifier.trim().length > 0 && !loading && hasValidSchedule;
+  const canPay =
+    customerName.trim().length > 0 &&
+    !loading &&
+    hasValidSchedule &&
+    (fulfillment === "counter" || (hostelBlock.trim().length > 0 && roomNumber.trim().length > 0));
 
   async function handleApplyPromo() {
     if (!promoCode.trim()) return;
@@ -430,18 +443,21 @@ function CheckoutSheet({
     try {
       const supabase = createClient();
 
-      // 1. Insert order into Supabase
       const { data: newOrder, error: insertError } = await supabase
         .from("orders")
         .insert({
           cafe_id: cafe.id,
-          table_number: identifier.trim(),
+          table_number: fulfillment === "room_delivery" ? "Room" : "0",
           total_amount: finalTotal,
           cart_items: cart,
           order_status: "pending",
           coupon_id: appliedCoupon ? appliedCoupon.id : null,
           discount_amount: discount,
           scheduled_at: scheduledTime ? scheduledTime.toISOString() : null,
+          fulfillment_type: fulfillment,
+          hostel_block: fulfillment === "room_delivery" ? hostelBlock.trim() : null,
+          room_number: fulfillment === "room_delivery" ? roomNumber.trim() : null,
+          customer_name: customerName.trim(),
         })
         .select()
         .single<Order>();
@@ -548,7 +564,7 @@ function CheckoutSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Checkout"
-        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:fixed print:inset-0 print:bg-white print:border-none print:shadow-none print:w-full print:h-full print:translate-y-0 print:z-50 print:overflow-visible ${
+        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md md:max-w-xl mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:fixed print:inset-0 print:bg-white print:border-none print:shadow-none print:w-full print:h-full print:translate-y-0 print:z-50 print:overflow-visible ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -596,14 +612,16 @@ function CheckoutSheet({
                 If UPI app did not open,{" "}
                 <button
                   onClick={() => {
-                    const stationName = placedOrder.table_number === "0" ? "Counter" : `Table ${placedOrder.table_number}`;
+                    const printFulfillment = placedOrder.fulfillment_type === "room_delivery" 
+                      ? `Room ${placedOrder.hostel_block}-${placedOrder.room_number}` 
+                      : "Counter";
                     const link =
                       `upi://pay?pa=${encodeURIComponent(cafe.upi_id)}` +
                       `&pn=${encodeURIComponent(cafe.business_name)}` +
                       `&tr=${encodeURIComponent(placedOrder.id.replace(/-/g, ""))}` +
                       `&mc=5812` +
                       `&am=${placedOrder.total_amount.toFixed(2)}&cu=INR` +
-                      `&tn=${encodeURIComponent("Order from " + (cafe.has_seating ? stationName : identifier.trim()))}`;
+                      `&tn=${encodeURIComponent("Order from " + printFulfillment)}`;
                     window.location.href = link;
                   }}
                   className="text-accent underline"
@@ -746,29 +764,75 @@ function CheckoutSheet({
                 )}
               </div>
 
-              {/* Identifier input */}
-              <div className="mb-5">
-                <label className="block text-xs font-black uppercase tracking-wider text-black mb-2">
-                  {label}
+              {/* Customer Name input */}
+              <div className="mb-4">
+                <label className="block text-xs font-black uppercase tracking-wider text-black mb-1.5">
+                  Your Name
                 </label>
                 <input
                   ref={inputRef}
-                  type={initialTable !== undefined ? "text" : (cafe.has_seating ? "number" : "text")}
-                  disabled={initialTable !== undefined}
-                  value={
-                    initialTable !== undefined
-                      ? (identifier === "0" ? "Counter (Table 0)" : `Table ${identifier}`)
-                      : identifier
-                  }
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder={placeholder}
-                  inputMode={cafe.has_seating ? "numeric" : "text"}
-                  className="w-full min-h-12 px-4 border-2 border-black bg-white text-black placeholder:text-gray-400 font-bold focus:outline-none focus:ring-0 focus:border-accent disabled:bg-gray-100 disabled:text-gray-500 rounded-none text-base"
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="e.g. Rahul"
+                  required
+                  className="w-full min-h-12 px-4 border-2 border-black bg-white text-black placeholder:text-gray-400 font-bold focus:outline-none focus:ring-0 focus:border-accent rounded-none text-base"
                 />
-                {initialTable !== undefined && (
-                  <p className="text-[10px] text-gray-500 font-semibold mt-1.5 uppercase tracking-wide">
-                    📍 Table set automatically from scanned QR code.
-                  </p>
+              </div>
+
+              {/* Fulfillment Option */}
+              <div className="mb-5 border-t border-dashed border-black/30 pt-3">
+                <label className="block text-xs font-black uppercase text-gray-500 tracking-wider mb-2">Fulfillment Mode</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFulfillment("counter")}
+                    className={`py-2 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer rounded-none ${
+                      fulfillment === "counter"
+                        ? "bg-warning text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
+                        : "bg-white text-black hover:bg-zinc-50"
+                    }`}
+                  >
+                    🏃 Counter Pick Up
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFulfillment("room_delivery")}
+                    className={`py-2 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer rounded-none ${
+                      fulfillment === "room_delivery"
+                        ? "bg-accent text-white shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
+                        : "bg-white text-black hover:bg-zinc-50"
+                    }`}
+                  >
+                    🚪 Room Delivery
+                  </button>
+                </div>
+
+                {fulfillment === "room_delivery" && (
+                  <div className="grid grid-cols-2 gap-3 mt-3 p-2.5 bg-zinc-50 border-2 border-black">
+                    <div>
+                      <label className="block text-[9px] font-black uppercase text-black mb-1">Hostel Block</label>
+                      <input
+                        type="text"
+                        required
+                        value={hostelBlock}
+                        onChange={(e) => setHostelBlock(e.target.value)}
+                        placeholder="e.g. A"
+                        className="w-full min-h-9 px-2 border border-black bg-white text-black font-bold focus:outline-none text-xs rounded-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-black uppercase text-black mb-1">Room Number</label>
+                      <input
+                        type="text"
+                        required
+                        value={roomNumber}
+                        onChange={(e) => setRoomNumber(e.target.value)}
+                        placeholder="e.g. 104"
+                        className="w-full min-h-9 px-2 border border-black bg-white text-black font-bold focus:outline-none text-xs rounded-none"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -915,7 +979,7 @@ function OrderHistorySheet({
         role="dialog"
         aria-modal="true"
         aria-label="Order History"
-        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:fixed print:inset-0 print:bg-white print:border-none print:shadow-none print:w-full print:h-full print:translate-y-0 print:z-50 print:overflow-visible ${
+        className={`fixed bottom-0 left-0 right-0 z-50 max-w-md md:max-w-xl mx-auto bg-[#f5f2eb] border-t-4 border-l-2 border-r-2 border-black rounded-none transition-transform duration-300 ease-out print:fixed print:inset-0 print:bg-white print:border-none print:shadow-none print:w-full print:h-full print:translate-y-0 print:z-50 print:overflow-visible ${
           isOpen ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -1105,12 +1169,12 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
   }, [activeCategory, items]);
 
   return (
-    <div className="min-h-dvh flex flex-col bg-background max-w-md mx-auto border-x-4 border-black print:border-none print:bg-white print:max-w-none print:h-auto">
+    <div className="min-h-dvh flex flex-col bg-[#f5f2eb] w-full max-w-md md:max-w-none mx-auto border-x-4 md:border-x-0 border-black print:border-none print:bg-white print:max-w-none print:h-auto">
       {/* Printable Area Wrapper: Hide regular elements when printing */}
       
       {/* ── Header ── */}
       <header className="relative z-10 bg-accent text-white border-b-4 border-black shadow-[0_4px_0_0_#000] px-5 py-4 print:hidden">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between max-w-5xl mx-auto w-full">
           <div>
             <h1 className="font-display font-black text-lg uppercase tracking-tight leading-none">
               {cafe.business_name}
@@ -1132,60 +1196,64 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
 
       {/* ── Sticky Category Bar ── */}
       {items.length > 0 && (
-        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm py-4 border-b-4 border-black overflow-x-auto whitespace-nowrap hide-scrollbar px-4 flex gap-3 print:hidden">
-          <button
-            onClick={() => setActiveCategory("All")}
-            className={`border-4 border-black px-4 py-2 text-sm font-black uppercase transition-all cursor-pointer rounded-none ${
-              activeCategory === "All"
-                ? "bg-warning text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5"
-                : "bg-white text-black hover:bg-zinc-100"
-            }`}
-          >
-            All
-          </button>
-          {categories.map((category) => {
-            const hasItems = items.some((item) => item.category_id === category.id);
-            if (!hasItems) return null;
-            return (
-              <button
-                key={category.id}
-                onClick={() => setActiveCategory(category.id)}
-                className={`border-4 border-black px-4 py-2 text-sm font-black uppercase transition-all cursor-pointer rounded-none ${
-                  activeCategory === category.id
-                    ? "bg-warning text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5"
-                    : "bg-white text-black hover:bg-zinc-100"
-                }`}
-              >
-                {category.name}
-              </button>
-            );
-          })}
+        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm py-4 border-b-4 border-black print:hidden">
+          <div className="max-w-5xl mx-auto w-full px-4 overflow-x-auto whitespace-nowrap hide-scrollbar flex gap-3">
+            <button
+              onClick={() => setActiveCategory("All")}
+              className={`border-4 border-black px-4 py-2 text-sm font-black uppercase transition-all cursor-pointer rounded-none ${
+                activeCategory === "All"
+                  ? "bg-warning text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5"
+                  : "bg-white text-black hover:bg-zinc-100"
+              }`}
+            >
+              All
+            </button>
+            {categories.map((category) => {
+              const hasItems = items.some((item) => item.category_id === category.id);
+              if (!hasItems) return null;
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategory(category.id)}
+                  className={`border-4 border-black px-4 py-2 text-sm font-black uppercase transition-all cursor-pointer rounded-none ${
+                    activeCategory === category.id
+                      ? "bg-warning text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] -translate-x-0.5 -translate-y-0.5"
+                      : "bg-white text-black hover:bg-zinc-100"
+                  }`}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* ── Active Order Banner ── */}
       {placedOrders.length > 0 && (
-        <div className="mx-4 mt-5 bg-warning/20 border-2 border-black p-3.5 shadow-[3px_3px_0px_0px_#000] flex items-center justify-between text-black print:hidden">
-          <div className="flex items-start gap-2.5">
-            <span className="text-xl">🔔</span>
-            <div>
-              <p className="font-display font-black text-sm uppercase leading-tight">Active Orders Placed</p>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600 mt-0.5">
-                Live Status: {placedOrders[0].order_status === "pending" ? "Cooking soon" : placedOrders[0].order_status}
-              </p>
+        <div className="max-w-5xl mx-auto w-full px-4 mt-5">
+          <div className="bg-warning/20 border-2 border-black p-3.5 shadow-[3px_3px_0px_0px_#000] flex items-center justify-between text-black print:hidden">
+            <div className="flex items-start gap-2.5">
+              <span className="text-xl">🔔</span>
+              <div>
+                <p className="font-display font-black text-sm uppercase leading-tight">Active Orders Placed</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600 mt-0.5">
+                  Live Status: {placedOrders[0].order_status === "pending" ? "Cooking soon" : placedOrders[0].order_status}
+                </p>
+              </div>
             </div>
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className="px-2.5 py-1 bg-black text-white text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+            >
+              Track Status
+            </button>
           </div>
-          <button
-            onClick={() => setHistoryOpen(true)}
-            className="px-2.5 py-1 bg-black text-white text-xs font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
-          >
-            Track Status
-          </button>
         </div>
       )}
 
       {/* ── Menu list ── */}
-      <main className="flex-1 px-4 py-4 pb-32 print:hidden">
+      <main className="flex-1 px-4 py-4 pb-32 print:hidden max-w-5xl mx-auto w-full">
         {filteredItems.length === 0 ? (
           <div className="py-20 text-center border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] my-4 p-8">
             <span className="text-5xl">🍽️</span>
@@ -1204,7 +1272,7 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
                   <h2 className="font-display font-black text-base uppercase tracking-tight text-black border-b-2 border-black pb-1 mt-4">
                     {category.name}
                   </h2>
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {categoryItems.map((item) => (
                       <MenuItemRow
                         key={item.id}
@@ -1229,7 +1297,7 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
                   <h2 className="font-display font-black text-base uppercase tracking-tight text-black border-b-2 border-black pb-1 mt-4">
                     Other Items
                   </h2>
-                  <div className="space-y-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {uncategorizedItems.map((item) => (
                       <MenuItemRow
                         key={item.id}
@@ -1248,7 +1316,7 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
 
       {/* ── Cart FAB ── */}
       <div
-        className={`fixed bottom-0 left-0 right-0 max-w-md mx-auto px-4 pb-6 z-30 print:hidden ${
+        className={`fixed bottom-0 left-0 right-0 max-w-md md:max-w-lg mx-auto px-4 pb-6 z-30 print:hidden ${
           cartCount > 0 ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 pointer-events-none"
         }`}
       >

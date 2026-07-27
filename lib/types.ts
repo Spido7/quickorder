@@ -57,4 +57,7 @@ export interface Order {
   discount_amount: number;
   created_at: string;
   scheduled_at: string | null;
+  fulfillment_type?: string | null;
+  hostel_block?: string | null;
+  room_number?: string | null;
 }
