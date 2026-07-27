@@ -1,8 +1,7 @@
 // Edge-native encryption utilities using Web Crypto API (AES-GCM-256)
 // This file is fully compatible with Cloudflare Workers / Next.js Edge runtime.
-// It does NOT import Node.js 'crypto' to prevent large polyfill injection.
 
-const IV_LENGTH = 12; // 12 bytes is standard for AES-GCM
+const IV_LENGTH = 12;
 
 function getEnvKey(): string {
   const key = process.env.PAYMENT_ENCRYPTION_KEY;
@@ -25,13 +24,24 @@ function hexToUint8Array(hex: string): Uint8Array {
   return array;
 }
 
-// Convert Uint8Array to hex string
-function uint8ArrayToHex(arr: Uint8Array): string {
-  let hex = "";
-  for (let i = 0; i < arr.length; i++) {
-    hex += arr[i].toString(16).padStart(2, "0");
+// Convert Uint8Array to base64 string
+function uint8ArrayToBase64(arr: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < arr.byteLength; i++) {
+    binary += String.fromCharCode(arr[i]);
   }
-  return hex;
+  return btoa(binary);
+}
+
+// Convert base64 string to Uint8Array
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
 }
 
 // Helper to import the raw master key
@@ -50,7 +60,7 @@ async function importKey(): Promise<CryptoKey> {
 
 /**
  * Encrypts plain text using AES-GCM-256 with a random IV
- * Returns a hex-encoded string containing both IV and ciphertext
+ * Returns a base64-encoded string containing both IV and ciphertext
  */
 export async function encrypt(text: string): Promise<string> {
   const key = await importKey();
@@ -74,15 +84,15 @@ export async function encrypt(text: string): Promise<string> {
   combined.set(iv, 0);
   combined.set(ciphertext, iv.length);
 
-  return uint8ArrayToHex(combined);
+  return uint8ArrayToBase64(combined);
 }
 
 /**
- * Decrypts a hex-encoded AES-GCM-256 ciphertext string
+ * Decrypts a base64-encoded AES-GCM-256 ciphertext string
  */
-export async function decrypt(encryptedHex: string): Promise<string> {
+export async function decrypt(encryptedBase64: string): Promise<string> {
   const key = await importKey();
-  const combined = hexToUint8Array(encryptedHex);
+  const combined = base64ToUint8Array(encryptedBase64);
 
   if (combined.length < IV_LENGTH) {
     throw new Error("Invalid encrypted text length");

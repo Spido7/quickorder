@@ -418,7 +418,7 @@ function CheckoutSheet({
     setPromoError(null);
   }
 
-  async function handlePay() {
+  async function handleRazorpayCheckout() {
     setLoading(true);
     setError(null);
 
@@ -467,7 +467,7 @@ function CheckoutSheet({
         currency: res.currency,
         name: cafe.business_name,
         description: `Order #${newOrder.id.slice(0, 8)}`,
-        order_id: res.id,
+        order_id: res.orderId,
         handler: async function (response: any) {
           setLoading(true);
           try {
@@ -827,7 +827,7 @@ function CheckoutSheet({
 
               {/* Pay button */}
               <button
-                onClick={handlePay}
+                onClick={handleRazorpayCheckout}
                 disabled={!canPay}
                 className="w-full min-h-14 bg-accent text-white font-display font-black text-base border-2 border-black shadow-[4px_4px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-3 cursor-pointer"
               >
@@ -839,17 +839,14 @@ function CheckoutSheet({
                 ) : (
                   <>
                     <span>💳</span>
-                    Pay ₹{finalTotal.toFixed(2)} via UPI
+                    Pay ₹{finalTotal.toFixed(2)}
                   </>
                 )}
               </button>
 
               <p className="text-center text-gray-500 text-[10px] font-bold uppercase tracking-wider mt-3">
-                Opens GPay, PhonePe, Paytm or any UPI app
+                Processed securely via Razorpay
               </p>
-              <div className="mt-4 p-2.5 border border-black/20 bg-warning/10 text-black/75 text-[10px] font-bold leading-normal uppercase tracking-wide rounded-none text-center">
-                💡 Note: If the amount is not pre-filled in your UPI app, please type <span className="text-accent font-black">₹{finalTotal.toFixed(2)}</span> manually. UPI restricts auto-filling for personal accounts.
-              </div>
             </>
           )}
         </div>

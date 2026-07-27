@@ -76,10 +76,11 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      id: rpayData.id,
+      id: rpayData.id,        // Backward compatibility
+      orderId: rpayData.id,   // Razorpay's generated order ID
       amount: rpayData.amount,
       currency: rpayData.currency,
-      keyId: keyId, // Return keyId so the client knows which public key to use for checkout
+      keyId: keyId,
     });
   } catch (error: any) {
     console.error("Order Creation Endpoint Error:", error);

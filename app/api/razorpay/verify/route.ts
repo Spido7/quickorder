@@ -5,14 +5,14 @@ import { decrypt } from "@/lib/crypto";
 export const runtime = "edge";
 
 async function verifySignature(
-  orderId: string,
-  paymentId: string,
+  razorpayOrderId: string,
+  razorpayPaymentId: string,
   signature: string,
   secret: string
 ): Promise<boolean> {
   const encoder = new TextEncoder();
   const keyData = encoder.encode(secret);
-  const data = encoder.encode(`${orderId}|${paymentId}`);
+  const data = encoder.encode(`${razorpayOrderId}|${razorpayPaymentId}`);
 
   // Import the secret key for HMAC SHA-256
   const cryptoKey = await crypto.subtle.importKey(
@@ -39,11 +39,11 @@ async function verifySignature(
 export async function POST(req: Request) {
   try {
     const {
+      cafeId,
+      orderId,
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      orderId,
-      cafeId,
     } = await req.json();
 
     if (
@@ -101,13 +101,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5. Update order status to "preparing" (or "paid" depending on schema status mapping)
-    // Note: The orders table has check constraint on order_status in ('pending', 'preparing', 'done', 'cancelled')
+    // 5. Update order status to "preparing" and payment_status to "paid"
     const { error: updateError } = await supabaseAdmin
       .from("orders")
       .update({
         order_status: "preparing",
-        payment_status: "paid", // Add payment_status tracking if schema supports it (non-blocking)
+        payment_status: "paid",
       })
       .eq("id", orderId);
 
