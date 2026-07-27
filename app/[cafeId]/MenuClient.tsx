@@ -444,109 +444,77 @@ function CheckoutSheet({
       if (insertError) throw insertError;
       if (!newOrder) throw new Error("Order creation returned no data");
 
-      // 2. Try to initialize Razorpay Order dynamically from server API
-      let rpayData = null;
-      try {
-        const response = await fetch("/api/razorpay/order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: finalTotal,
-            orderId: newOrder.id,
-            cafeId: cafe.id,
-          }),
-        });
-        if (response.ok) {
-          const res = await response.json();
-          if (res.success) {
-            rpayData = res;
-          }
-        }
-      } catch (e) {
-        console.warn("Failed to check Razorpay config, falling back to UPI:", e);
+      // 2. Initialize Razorpay Order dynamically from server API
+      const response = await fetch("/api/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: finalTotal,
+          orderId: newOrder.id,
+          cafeId: cafe.id,
+        }),
+      });
+
+      const res = await response.json();
+      if (!response.ok || !res.success) {
+        throw new Error(res?.error || "Failed to initialize Razorpay payment. Please try again.");
       }
 
-      if (rpayData) {
-        // Run Razorpay Checkout modal
-        const options = {
-          key: rpayData.keyId,
-          amount: rpayData.amount,
-          currency: rpayData.currency,
-          name: cafe.business_name,
-          description: `Order #${newOrder.id.slice(0, 8)}`,
-          order_id: rpayData.id,
-          handler: async function (response: any) {
-            setLoading(true);
-            try {
-              const verifyResponse = await fetch("/api/razorpay/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  orderId: newOrder.id,
-                  cafeId: cafe.id,
-                }),
-              });
-              const verifyResult = await verifyResponse.json();
-              if (verifyResult.success) {
-                // Success! The verify route already updated database state to "preparing"
-                const updatedOrder = { ...newOrder, order_status: "preparing" as any };
-                setPlacedOrder(updatedOrder);
-                setStep("submitted");
-                onOrderPlaced(updatedOrder);
-              } else {
-                throw new Error(verifyResult.error || "Signature verification failed");
-              }
-            } catch (err: any) {
-              setError(err.message || "Failed to verify payment signature.");
-            } finally {
-              setLoading(false);
+      // Run Razorpay Checkout modal
+      const options = {
+        key: res.keyId,
+        amount: res.amount,
+        currency: res.currency,
+        name: cafe.business_name,
+        description: `Order #${newOrder.id.slice(0, 8)}`,
+        order_id: res.id,
+        handler: async function (response: any) {
+          setLoading(true);
+          try {
+            const verifyResponse = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: newOrder.id,
+                cafeId: cafe.id,
+              }),
+            });
+            const verifyResult = await verifyResponse.json();
+            if (verifyResult.success) {
+              // Success! The verify route already updated database state to "preparing"
+              const updatedOrder = { ...newOrder, order_status: "preparing" as any };
+              setPlacedOrder(updatedOrder);
+              setStep("submitted");
+              onOrderPlaced(updatedOrder);
+            } else {
+              throw new Error(verifyResult.error || "Signature verification failed");
             }
+          } catch (err: any) {
+            setError(err.message || "Failed to verify payment signature.");
+          } finally {
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
           },
-          modal: {
-            ondismiss: function () {
-              setLoading(false);
-            },
-          },
-          prefill: {
-            name: "",
-            email: "",
-            contact: "",
-          },
-          theme: {
-            color: "#000000",
-          },
-        };
+        },
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
+        },
+        theme: {
+          color: "#000000",
+        },
+      };
 
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-      } else {
-        // Fallback: Notify checkout callback first then build UPI deep link and redirect
-        setPlacedOrder(newOrder);
-        setStep("submitted");
-        onOrderPlaced(newOrder);
-
-        const stationName = newOrder.table_number === "0"
-          ? "Counter"
-          : `Table ${newOrder.table_number}`;
-        
-        const upiLink =
-          `upi://pay` +
-          `?pa=${encodeURIComponent(cafe.upi_id)}` +
-          `&pn=${encodeURIComponent(cafe.business_name)}` +
-          `&tr=${encodeURIComponent(newOrder.id.replace(/-/g, ""))}` +
-          `&mc=5812` +
-          `&am=${finalTotal.toFixed(2)}` +
-          `&cu=INR` +
-          `&tn=${encodeURIComponent("Order from " + (cafe.has_seating ? stationName : identifier.trim()))}`;
-
-        // Small delay so user sees the success state before the OS dialog appears
-        setTimeout(() => {
-          window.location.href = upiLink;
-        }, 500);
-      }
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
       setLoading(false);
