@@ -288,6 +288,7 @@ function CheckoutSheet({
   const [hostelBlock, setHostelBlock] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [orderNotes, setOrderNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
@@ -346,6 +347,7 @@ function CheckoutSheet({
       setHostelBlock("");
       setRoomNumber("");
       setCustomerName("");
+      setOrderNotes("");
 
       // Small delay so animation completes before focusing
       setTimeout(() => inputRef.current?.focus(), 350);
@@ -458,6 +460,7 @@ function CheckoutSheet({
           hostel_block: fulfillment === "room_delivery" ? hostelBlock.trim() : null,
           room_number: fulfillment === "room_delivery" ? roomNumber.trim() : null,
           customer_name: customerName.trim(),
+          notes: orderNotes.trim() || null,
         })
         .select()
         .single<Order>();
@@ -834,6 +837,20 @@ function CheckoutSheet({
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Cooking Instructions Input */}
+              <div className="mb-5 border-t border-dashed border-black/30 pt-3">
+                <label className="block text-xs font-black uppercase text-gray-500 tracking-wider mb-2">
+                  🧑‍🍳 Special Instructions (Cooking / Delivery)
+                </label>
+                <textarea
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                  placeholder="e.g. Make it extra spicy / don't ring the bell / no onions..."
+                  rows={2}
+                  className="w-full p-3 border-2 border-black bg-white text-black placeholder:text-gray-400 font-bold focus:outline-none focus:ring-0 focus:border-accent rounded-none text-xs resize-none shadow-[2px_2px_0px_0px_#000]"
+                />
               </div>
 
               {/* Error */}

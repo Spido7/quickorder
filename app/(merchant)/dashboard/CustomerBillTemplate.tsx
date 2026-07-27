@@ -99,6 +99,13 @@ export default function CustomerBillTemplate({ order, cafe }: CustomerBillTempla
         </div>
       </div>
 
+      {order.notes && (
+        <div className="mt-2 border-t border-black pt-2 text-[9px] font-bold text-black uppercase">
+          ✍️ Notes / Special Instructions:
+          <p className="font-normal text-[8px] mt-0.5 normal-case">{order.notes}</p>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="text-center mt-4 pt-2 border-t border-black text-[8px] space-y-0.5 uppercase tracking-wide">
         <p className="font-bold">Thanks for Ordering!</p>

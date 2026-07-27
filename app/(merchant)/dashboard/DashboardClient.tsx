@@ -211,6 +211,11 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
               📅 Scheduled
             </span>
           )}
+          {order.notes && (
+            <span className="text-[10px] font-black uppercase bg-warning text-black border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+              ✍️ Note
+            </span>
+          )}
           <h3 className="font-display font-black text-black text-sm uppercase tracking-tight">
             #ORD-{orderId}
           </h3>
@@ -250,6 +255,11 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
                   📅 Scheduled
                 </span>
               )}
+              {order.notes && (
+                <span className="text-[10px] font-black uppercase bg-warning text-black border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                  ✍️ Note
+                </span>
+              )}
               <span className={`text-xs font-bold ${isOverTime ? 'text-red-600 font-black' : 'text-black/60'}`}>
                 {timeText}
               </span>
@@ -287,6 +297,12 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
             </div>
           ))}
         </div>
+        {order.notes && (
+          <div className="mt-2 p-2.5 bg-warning/20 border-2 border-black text-black text-xs font-bold uppercase tracking-tight shadow-[2px_2px_0px_0px_#000]">
+            ✍️ Instruction:
+            <p className="font-normal text-[11px] mt-0.5 normal-case">{order.notes}</p>
+          </div>
+        )}
       </div>
 
       {/* Action button / Badge */}
@@ -446,6 +462,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const [counterFulfillment, setCounterFulfillment] = useState<"counter" | "room_delivery">("counter");
   const [counterHostelBlock, setCounterHostelBlock] = useState("");
   const [counterRoomNumber, setCounterRoomNumber] = useState("");
+  const [counterNotes, setCounterNotes] = useState("");
   const [counterPaymentMethod, setCounterPaymentMethod] = useState<"cash" | "razorpay">("cash");
   const [counterSubmitting, setCounterSubmitting] = useState(false);
   const [counterError, setCounterError] = useState<string | null>(null);
@@ -462,6 +479,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
     setCounterFulfillment("counter");
     setCounterHostelBlock("");
     setCounterRoomNumber("");
+    setCounterNotes("");
     setCounterPaymentMethod("cash");
     setCounterSubmitting(false);
     setCounterError(null);
@@ -513,6 +531,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
             room_number: counterFulfillment === "room_delivery" ? counterRoomNumber.trim() : null,
             discount_amount: 0,
             coupon_id: null,
+            notes: counterNotes.trim() || null,
           })
           .select()
           .single();
@@ -547,6 +566,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
             room_number: counterFulfillment === "room_delivery" ? counterRoomNumber.trim() : null,
             discount_amount: 0,
             coupon_id: null,
+            notes: counterNotes.trim() || null,
           })
           .select()
           .single();
@@ -1897,6 +1917,18 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                       </div>
                     </div>
                   )}
+                </div>
+
+                {/* Order Notes / Special Instructions */}
+                <div className="mt-2.5 border-t border-dashed border-black/30 pt-2.5 shrink-0">
+                  <label className="block text-[9px] font-black uppercase text-gray-500 tracking-wider mb-1">Order Notes / Instructions</label>
+                  <input
+                    type="text"
+                    value={counterNotes}
+                    onChange={(e) => setCounterNotes(e.target.value)}
+                    placeholder="e.g. Extra spicy / custom requests..."
+                    className="w-full min-h-9 px-2 border-2 border-black bg-white text-black font-bold focus:outline-none text-xs rounded-none shadow-[1px_1px_0px_0px_#000]"
+                  />
                 </div>
 
                 {/* Payment Option */}

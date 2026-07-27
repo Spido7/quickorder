@@ -60,4 +60,5 @@ export interface Order {
   fulfillment_type?: string | null;
   hostel_block?: string | null;
   room_number?: string | null;
+  notes?: string | null;
 }

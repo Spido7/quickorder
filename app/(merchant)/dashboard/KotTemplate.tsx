@@ -63,6 +63,13 @@ export default function KotTemplate({ order }: KotTemplateProps) {
         </table>
       </div>
       
+      {order.notes && (
+        <div className="mt-2 border-t border-black pt-2 text-[9px] font-bold text-black uppercase">
+          ✍️ Special Instructions:
+          <p className="font-normal text-[8px] mt-0.5 normal-case">{order.notes}</p>
+        </div>
+      )}
+      
       <div className="text-center mt-4 pt-2 border-t border-black text-[8px] space-y-0.5 uppercase tracking-wide">
         <p className="font-bold">KOT - Kitchen Copy</p>
       </div>
