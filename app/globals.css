@@ -125,3 +125,16 @@ body {
 
 
 
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0mm;
+  }
+}

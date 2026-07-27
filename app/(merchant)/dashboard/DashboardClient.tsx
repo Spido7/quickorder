@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
 import type { MenuItem, Order } from "@/lib/types";
+import ReceiptTemplate from "./ReceiptTemplate";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -111,9 +112,10 @@ function MenuItemRow({ item, onToggle, onEdit }: {
 }
 
 // ─── Regular Order Card (Preparing / Done) ────────────────────────────────────
-const OrderCard = memo(function OrderCard({ order, onStatusChange }: {
+const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCook }: {
   order: Order;
   onStatusChange: (id: string, status: Order["order_status"]) => void;
+  onAcceptAndCook?: (order: Order) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [timeText, setTimeText] = useState("");
@@ -294,7 +296,7 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange }: {
       }}>
         {order.order_status === "pending" && (
           <button
-            onClick={() => handleAction("preparing")}
+            onClick={() => onAcceptAndCook ? onAcceptAndCook(order) : handleAction("preparing")}
             disabled={busy}
             className="w-full min-h-12 bg-green-800 text-white font-display font-black uppercase tracking-tight text-sm border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
@@ -366,6 +368,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(false);
+  const [printingOrder, setPrintingOrder] = useState<any | null>(null);
   const [cafeId, setCafeId] = useState<string | null>(null);
   const [cafeDetails, setCafeDetails] = useState<{
     id: string;
@@ -720,13 +723,16 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
     }
   }
 
-  async function handleAcceptOrder(id: string) {
-    const updated: Order["order_status"] = "preparing";
+  const handleAcceptAndCook = useCallback(async (order: Order) => {
+    setPrintingOrder(order);
     setOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, order_status: updated } : o))
+      prev.map((o) => (o.id === order.id ? { ...o, order_status: "preparing" } : o))
     );
-    await supabase.from("orders").update({ order_status: updated }).eq("id", id);
-  }
+    await supabase.from("orders").update({ order_status: "preparing" }).eq("id", order.id);
+    setTimeout(() => {
+      window.print();
+    }, 100);
+  }, [supabase]);
 
   const handleStatusChange = useCallback(async (id: string, status: Order["order_status"]) => {
     setOrders((prev) =>
@@ -799,7 +805,8 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   }
 
   return (
-    <div className="min-h-dvh flex flex-col bg-background w-full max-w-7xl xl:max-w-[1440px] mx-auto text-black">
+    <>
+      <div className="min-h-dvh flex flex-col bg-background w-full max-w-7xl xl:max-w-[1440px] mx-auto text-black print:hidden">
 
       {/* ── Header ── */}
       <header className="no-print sticky top-0 z-10 bg-white border-b-2 border-black">
@@ -940,7 +947,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                 {showScheduled && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4 pt-4 border-t-4 border-black border-dashed">
                     {scheduledOrders.map((order) => (
-                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} onAcceptAndCook={handleAcceptAndCook} />
                     ))}
                   </div>
                 )}
@@ -960,7 +967,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                 {incomingOrders.length > 0 ? (
                   <div className="space-y-4">
                     {incomingOrders.map((order) => (
-                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} onAcceptAndCook={handleAcceptAndCook} />
                     ))}
                   </div>
                 ) : (
@@ -1429,7 +1436,14 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
           }
         }
       `}</style>
-    </div>
+      </div>
+
+      {printingOrder && (
+        <div className="hidden print:block">
+          <ReceiptTemplate cafe={cafeDetails} order={printingOrder} />
+        </div>
+      )}
+    </>
   );
 }
 
