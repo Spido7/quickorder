@@ -838,13 +838,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                 <>🔕 <span className="hidden sm:inline">Sound: </span>OFF</>
               )}
             </button>
-            <button
-              onClick={() => router.push("/dashboard/coupons")}
-              className="text-black font-black text-xs border-2 border-black bg-white px-2 py-1.5 sm:px-3 shadow-[2px_2px_0px_0px_#000] cursor-pointer hover:bg-zinc-50 transition-all flex items-center justify-center gap-1 rounded-none min-h-[36px]"
-            >
-              <span>🎟️</span>
-              <span className="hidden sm:inline">Coupons</span>
-            </button>
+
             {hasMultipleCafes && (
               <button
                 onClick={() => router.push("/dashboard")}

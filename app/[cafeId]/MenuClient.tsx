@@ -637,70 +637,11 @@ function CheckoutSheet({
                   </div>
                 ))}
 
-                {/* Price Breakdown */}
-                {appliedCoupon ? (
-                  <>
-                    <div className="flex justify-between items-center px-4 py-2 border-t-2 border-black bg-white text-xs font-bold text-black/60 uppercase">
-                      <span>Subtotal</span>
-                      <span>₹{total.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center px-4 py-2 border-t border-black bg-white text-xs font-bold text-success uppercase">
-                      <span>Coupon ({appliedCoupon.code})</span>
-                      <span>-₹{discount.toFixed(2)}</span>
-                    </div>
-                  </>
-                ) : null}
-
                 {/* Total row */}
                 <div className="flex justify-between items-center px-4 py-3 bg-[#fcbf49]/20 border-t-2 border-black">
                   <span className="text-black font-display font-black uppercase tracking-tight">Total</span>
                   <span className="text-accent font-black text-lg">₹{finalTotal.toFixed(2)}</span>
                 </div>
-              </div>
-
-              {/* Promo Code Input */}
-              <div className="mb-5">
-                <label className="block text-xs font-black uppercase tracking-wider text-black mb-2">
-                  Promo Code
-                </label>
-                <div className="flex gap-2.5">
-                  <input
-                    type="text"
-                    disabled={promoLoading || appliedCoupon !== null}
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value)}
-                    placeholder="ENTER CODE"
-                    className="flex-1 min-h-12 px-4 border-2 border-black bg-white text-black placeholder:text-gray-400 font-bold focus:outline-none focus:ring-0 focus:border-accent disabled:bg-gray-100 disabled:text-gray-500 rounded-none text-base uppercase"
-                  />
-                  {appliedCoupon !== null ? (
-                    <button
-                      onClick={handleRemovePromo}
-                      className="px-4 bg-danger text-white font-display font-bold text-xs border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer uppercase font-black"
-                    >
-                      Remove
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleApplyPromo}
-                      disabled={promoLoading || !promoCode.trim()}
-                      className="px-6 bg-warning text-black font-display font-black text-xs border-2 border-black shadow-[2px_2px_0px_0px_#000] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center cursor-pointer uppercase font-black"
-                    >
-                      {promoLoading ? "..." : "Apply"}
-                    </button>
-                  )}
-                </div>
-
-                {/* Promo Messages */}
-                {promoError && (
-                  <p className="text-danger text-xs font-bold mt-1.5 uppercase tracking-wide">
-                    ⚠️ {promoError}
-                  </p>
-                )}
-                {promoSuccess && (
-                  <p className="text-success text-xs font-bold mt-1.5 uppercase tracking-wide">
-                    🎉 {promoSuccess}
-                  </p>
-                )}
               </div>
 
               {/* Scheduling Section */}
