@@ -356,9 +356,7 @@ function CheckoutSheet({
   onOrderPlaced: (order: Order) => void;
 }) {
   const [step, setStep] = useState<CheckoutStep>("summary");
-  const [fulfillment, setFulfillment] = useState<"counter" | "room_delivery">("counter");
-  const [hostelBlock, setHostelBlock] = useState("");
-  const [roomNumber, setRoomNumber] = useState("");
+  const fulfillment = "counter";
   const [customerName, setCustomerName] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
   const [loading, setLoading] = useState(false);
@@ -415,9 +413,6 @@ function CheckoutSheet({
       setCustomTimeInput("");
       setActivePreset(null);
       setSchedulingError(null);
-      setFulfillment("counter");
-      setHostelBlock("");
-      setRoomNumber("");
       setCustomerName("");
       setOrderNotes("");
 
@@ -465,8 +460,7 @@ function CheckoutSheet({
   const canPay =
     customerName.trim().length > 0 &&
     !loading &&
-    hasValidSchedule &&
-    (fulfillment === "counter" || (hostelBlock.trim().length > 0 && roomNumber.trim().length > 0));
+    hasValidSchedule;
 
   async function handleApplyPromo() {
     if (!promoCode.trim()) return;
@@ -521,16 +515,17 @@ function CheckoutSheet({
         .from("orders")
         .insert({
           cafe_id: cafe.id,
-          table_number: fulfillment === "room_delivery" ? "Room" : "0",
+          table_number: initialTable || "0",
           total_amount: finalTotal,
           cart_items: cart,
           order_status: "pending",
+          payment_status: "unpaid",
           coupon_id: appliedCoupon ? appliedCoupon.id : null,
           discount_amount: discount,
           scheduled_at: scheduledTime ? scheduledTime.toISOString() : null,
-          fulfillment_type: fulfillment,
-          hostel_block: fulfillment === "room_delivery" ? hostelBlock.trim() : null,
-          room_number: fulfillment === "room_delivery" ? roomNumber.trim() : null,
+          fulfillment_type: "counter",
+          hostel_block: null,
+          room_number: null,
           customer_name: customerName.trim(),
           notes: orderNotes.trim() || null,
         })
@@ -588,8 +583,8 @@ function CheckoutSheet({
             });
             const verifyResult = await verifyResponse.json();
             if (verifyResult.success) {
-              // Success! The verify route already updated database state to "preparing"
-              const updatedOrder = { ...newOrder, order_status: "preparing" as any };
+              // Success! The verify route already updated database state to "pending"
+              const updatedOrder = { ...newOrder, order_status: "pending" as any, payment_status: "paid" as any };
               setPlacedOrder(updatedOrder);
               setStep("submitted");
               onOrderPlaced(updatedOrder);
@@ -855,61 +850,7 @@ function CheckoutSheet({
                 />
               </div>
 
-              {/* Fulfillment Option */}
-              <div className="mb-5 border-t border-dashed border-black/30 pt-3">
-                <label className="block text-xs font-black uppercase text-gray-500 tracking-wider mb-2">Fulfillment Mode</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFulfillment("counter")}
-                    className={`py-2 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer rounded-none ${
-                      fulfillment === "counter"
-                        ? "bg-warning text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
-                        : "bg-white text-black hover:bg-zinc-50"
-                    }`}
-                  >
-                    🏃 Counter Pick Up
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFulfillment("room_delivery")}
-                    className={`py-2 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer rounded-none ${
-                      fulfillment === "room_delivery"
-                        ? "bg-accent text-white shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
-                        : "bg-white text-black hover:bg-zinc-50"
-                    }`}
-                  >
-                    🚪 Room Delivery
-                  </button>
-                </div>
 
-                {fulfillment === "room_delivery" && (
-                  <div className="grid grid-cols-2 gap-3 mt-3 p-2.5 bg-zinc-50 border-2 border-black">
-                    <div>
-                      <label className="block text-[9px] font-black uppercase text-black mb-1">Hostel Block</label>
-                      <input
-                        type="text"
-                        required
-                        value={hostelBlock}
-                        onChange={(e) => setHostelBlock(e.target.value)}
-                        placeholder="e.g. A"
-                        className="w-full min-h-9 px-2 border border-black bg-white text-black font-bold focus:outline-none text-xs rounded-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] font-black uppercase text-black mb-1">Room Number</label>
-                      <input
-                        type="text"
-                        required
-                        value={roomNumber}
-                        onChange={(e) => setRoomNumber(e.target.value)}
-                        placeholder="e.g. 104"
-                        className="w-full min-h-9 px-2 border border-black bg-white text-black font-bold focus:outline-none text-xs rounded-none"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
 
               {/* Cooking Instructions Input */}
               <div className="mb-5 border-t border-dashed border-black/30 pt-3">
@@ -1001,7 +942,7 @@ function CheckoutSheet({
                     });
                     const verifyResult = await verifyResponse.json();
                     if (verifyResult.success) {
-                      const updatedOrder = { ...mockOrderData, order_status: "preparing" as any };
+                      const updatedOrder = { ...mockOrderData, order_status: "pending" as any, payment_status: "paid" as any };
                       setPlacedOrder(updatedOrder);
                       setStep("submitted");
                       onOrderPlaced(updatedOrder);

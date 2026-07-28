@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       const { error: updateError } = await supabaseAdmin
         .from("orders")
         .update({
-          order_status: "preparing",
+          order_status: "pending",
           payment_status: "paid",
         })
         .eq("id", orderId);
@@ -127,7 +127,7 @@ export async function POST(req: Request) {
     const { error: updateError } = await supabaseAdmin
       .from("orders")
       .update({
-        order_status: "preparing",
+        order_status: "pending",
         payment_status: "paid",
       })
       .eq("id", orderId);

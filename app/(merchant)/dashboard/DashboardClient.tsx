@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useRef, memo, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
@@ -200,29 +200,36 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
     return (
       <div 
         onClick={() => setIsExpanded(true)}
-        className="border-4 border-black bg-zinc-50 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black rounded-none flex items-center justify-between cursor-pointer hover:bg-zinc-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all select-none"
+        className="border-2 border-black bg-zinc-50 p-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black rounded-none flex items-center justify-between cursor-pointer hover:bg-zinc-100 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all select-none"
       >
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-black uppercase bg-zinc-200 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[9px] font-black uppercase bg-zinc-200 border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
             {location}
           </span>
+          <span className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ${
+            order.payment_status === "paid" 
+              ? "bg-green-200 text-green-950" 
+              : "bg-red-200 text-red-950"
+          }`}>
+            {order.payment_status === "paid" ? "Paid" : "Unpaid"}
+          </span>
           {order.scheduled_at && (
-            <span className="text-[10px] font-black uppercase bg-purple-200 text-purple-900 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+            <span className="text-[9px] font-black uppercase bg-purple-200 text-purple-900 border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
               📅 Scheduled
             </span>
           )}
           {order.notes && (
-            <span className="text-[10px] font-black uppercase bg-warning text-black border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] animate-pulse">
+            <span className="text-[9px] font-black uppercase bg-warning text-black border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] animate-pulse">
               ✍️ Note
             </span>
           )}
-          <h3 className="font-display font-black text-black text-sm uppercase tracking-tight">
+          <h3 className="font-display font-black text-black text-xs uppercase tracking-tight">
             #ORD-{orderId}
           </h3>
         </div>
-        <div className="flex items-center gap-3">
-          <p className="font-display font-black text-black text-base">₹{order.total_amount}</p>
-          <span className="text-black font-black text-xs border-2 border-black bg-white px-2 py-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
+        <div className="flex items-center gap-2">
+          <p className="font-display font-black text-black text-sm">₹{order.total_amount}</p>
+          <span className="text-black font-black text-[10px] border border-black bg-white px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] shrink-0">
             EXPAND ▼
           </span>
         </div>
@@ -232,43 +239,50 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
 
   return (
     <div 
-      className={`border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black rounded-none flex flex-col justify-between h-full transition-all ${
+      className={`border-2 border-black p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-black rounded-none flex flex-col justify-between h-full transition-all ${
         isCompleted 
-          ? "bg-zinc-50/90 cursor-pointer hover:bg-zinc-50 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none" 
+          ? "bg-zinc-50/90 cursor-pointer hover:bg-zinc-50 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none" 
           : "bg-white"
       }`}
       onClick={isCompleted ? () => setIsExpanded(false) : undefined}
     >
       <div>
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-start justify-between gap-2 mb-2">
           <div>
-            <h3 className="font-display font-black text-black text-sm sm:text-base uppercase tracking-tight truncate max-w-[200px]">
+            <h3 className="font-display font-black text-black text-xs sm:text-sm uppercase tracking-tight truncate max-w-[180px]">
               #ORD-{orderId} - {customerName}
             </h3>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-[10px] font-black uppercase bg-zinc-100 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span className="text-[9px] font-black uppercase bg-zinc-100 border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
                 {location}
               </span>
+              <span className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] ${
+                order.payment_status === "paid" 
+                  ? "bg-green-200 text-green-950" 
+                  : "bg-red-200 text-red-950"
+              }`}>
+                {order.payment_status === "paid" ? "Paid" : "Unpaid"}
+              </span>
               {order.scheduled_at && (
-                <span className="text-[10px] font-black uppercase bg-purple-200 text-purple-900 border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-[9px] font-black uppercase bg-purple-200 text-purple-900 border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
                   📅 Scheduled
                 </span>
               )}
               {order.notes && (
-                <span className="text-[10px] font-black uppercase bg-warning text-black border-2 border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-[9px] font-black uppercase bg-warning text-black border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
                   ✍️ Note
                 </span>
               )}
-              <span className={`text-xs font-bold ${isOverTime ? 'text-red-600 font-black' : 'text-black/60'}`}>
+              <span className={`text-[11px] font-bold ${isOverTime ? 'text-red-600 font-black' : 'text-black/60'}`}>
                 {timeText}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <p className="font-display font-black text-black text-xl">₹{order.total_amount}</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <p className="font-display font-black text-black text-base">₹{order.total_amount}</p>
             {isCompleted && (
-              <span className="text-black font-black text-xs border-2 border-black bg-white px-2 py-0.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0 select-none">
+              <span className="text-black font-black text-[10px] border border-black bg-white px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] shrink-0 select-none">
                 COLLAPSE ▲
               </span>
             )}
@@ -276,37 +290,34 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
         </div>
 
         {/* Divider */}
-        <div className="border-t-2 border-black my-3" />
+        <div className="border-t border-black my-2" />
 
         {/* Cart items list in CSS Grid */}
-        <div className="space-y-2 mb-4">
+        <div className="space-y-1.5 mb-3">
           {order.cart_items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[auto_1fr_auto] gap-4 items-center">
-              {/* Column 1: Qty with solid yellow background, bold text, no internal borders */}
-              <span className="w-7 h-7 bg-warning text-black text-xs font-black flex items-center justify-center shrink-0">
+            <div key={item.id} className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+              <span className="w-5.5 h-5.5 bg-warning text-black text-[10px] font-black flex items-center justify-center shrink-0 border border-black">
                 {item.quantity}x
               </span>
-              {/* Column 2: Item name, left-aligned, bold text */}
-              <span className="text-black text-sm font-black text-left uppercase truncate">
+              <span className="text-black text-xs font-black text-left uppercase truncate">
                 {item.name}
               </span>
-              {/* Column 3: Price, right-aligned, standard font */}
-              <span className="text-black text-sm font-mono font-bold text-right shrink-0">
+              <span className="text-black text-xs font-mono font-bold text-right shrink-0">
                 ₹{item.price * item.quantity}
               </span>
             </div>
           ))}
         </div>
         {order.notes && (
-          <div className="mt-2 p-2.5 bg-warning/20 border-2 border-black text-black text-xs font-bold uppercase tracking-tight shadow-[2px_2px_0px_0px_#000]">
+          <div className="mt-2 p-2 bg-warning/10 border border-black text-black text-[10px] font-bold uppercase tracking-tight shadow-[1px_1px_0px_0px_#000]">
             ✍️ Instruction:
-            <p className="font-normal text-[11px] mt-0.5 normal-case">{order.notes}</p>
+            <p className="font-normal text-[10px] mt-0.5 normal-case text-gray-700">{order.notes}</p>
           </div>
         )}
       </div>
 
       {/* Action button / Badge */}
-      <div className="mt-auto pt-2" onClick={(e) => {
+      <div className="mt-auto pt-1.5" onClick={(e) => {
         if (isCompleted) {
           e.stopPropagation();
         }
@@ -315,10 +326,10 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
           <button
             onClick={() => onAcceptAndCook ? onAcceptAndCook(order) : handleAction("preparing")}
             disabled={busy}
-            className="w-full min-h-12 bg-green-800 text-white font-display font-black uppercase tracking-tight text-sm border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full min-h-[38px] bg-green-800 text-white font-display font-black uppercase tracking-tight text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             {busy ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>✅ ACCEPT &amp; COOK</>
             )}
@@ -329,10 +340,10 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
           <button
             onClick={() => handleAction("done")}
             disabled={busy}
-            className="w-full min-h-12 bg-blue-500 text-black font-display font-black uppercase tracking-tight text-sm border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full min-h-[38px] bg-blue-500 text-black font-display font-black uppercase tracking-tight text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all flex items-center justify-center gap-1.5 cursor-pointer"
           >
             {busy ? (
-              <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+              <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
             ) : (
               <>🚀 MARK AS READY</>
             )}
@@ -340,7 +351,7 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
         )}
 
         {order.order_status === "done" && (
-          <div className="w-full min-h-10 bg-zinc-100 text-black font-display font-black uppercase tracking-tight text-sm border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 select-none">
+          <div className="w-full min-h-[34px] bg-zinc-100 text-black font-display font-black uppercase tracking-tight text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 select-none">
             ☑️ Done
           </div>
         )}
@@ -350,7 +361,7 @@ const OrderCard = memo(function OrderCard({ order, onStatusChange, onAcceptAndCo
 });
 
 // ─── Tab Bar ──────────────────────────────────────────────────────────────────
-type Tab = "orders" | "menu";
+type Tab = "orders" | "menu" | "history";
 type SortOption = "default" | "newest" | "oldest" | "price-desc" | "price-asc";
 
 function TabBar({ active, onChange, pendingCount }: {
@@ -358,13 +369,13 @@ function TabBar({ active, onChange, pendingCount }: {
 }) {
   return (
     <div className="no-print flex border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] rounded-none overflow-hidden mx-4 md:mx-6 mb-4 p-0">
-      {(["orders", "menu"] as Tab[]).map((t) => (
+      {(["orders", "menu", "history"] as Tab[]).map((t) => (
         <button key={t} onClick={() => onChange(t)}
           className={`flex-1 min-h-11 font-display font-black uppercase text-sm border-r-2 border-black last:border-r-0 rounded-none relative transition-colors cursor-pointer ${
             active === t ? "bg-warning text-black font-black" : "bg-white text-black/60 hover:bg-zinc-50"
           }`}
         >
-          {t === "orders" ? "Live Orders" : "Menu Items"}
+          {t === "orders" ? "Active" : t === "menu" ? "Menu" : "History"}
           {t === "orders" && pendingCount > 0 && (
             <span className="absolute top-1.5 right-2 w-5 h-5 bg-accent text-white text-xs border border-black rounded-full flex items-center justify-center font-black animate-bounce shadow-[1px_1px_0px_0px_#000]">
               {pendingCount}
@@ -384,6 +395,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const [sortBy, setSortBy] = useState<SortOption>("default");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [historyFilter, setHistoryFilter] = useState<"1" | "7" | "30" | "all">("all");
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [printingOrder, setPrintingOrder] = useState<any | null>(null);
   const [cafeId, setCafeId] = useState<string | null>(null);
@@ -463,9 +475,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const [isCounterModalOpen, setIsCounterModalOpen] = useState(false);
   const [counterCart, setCounterCart] = useState<{ id: string; name: string; price: number; quantity: number }[]>([]);
   const [counterSearchQuery, setCounterSearchQuery] = useState("");
-  const [counterFulfillment, setCounterFulfillment] = useState<"counter" | "room_delivery">("counter");
-  const [counterHostelBlock, setCounterHostelBlock] = useState("");
-  const [counterRoomNumber, setCounterRoomNumber] = useState("");
+  const counterFulfillment = "counter";
   const [counterNotes, setCounterNotes] = useState("");
   const [counterPaymentMethod, setCounterPaymentMethod] = useState<"cash" | "razorpay">("cash");
   const [counterSubmitting, setCounterSubmitting] = useState(false);
@@ -481,10 +491,6 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
   const closeCounterModal = () => {
     setIsCounterModalOpen(false);
     setCounterCart([]);
-    setCounterSearchQuery("");
-    setCounterFulfillment("counter");
-    setCounterHostelBlock("");
-    setCounterRoomNumber("");
     setCounterNotes("");
     setCounterPaymentMethod("cash");
     setCounterSubmitting(false);
@@ -558,9 +564,9 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
             cart_items: counterCart,
             order_status: "preparing",
             payment_status: "paid",
-            fulfillment_type: counterFulfillment,
-            hostel_block: counterFulfillment === "room_delivery" ? counterHostelBlock.trim() : null,
-            room_number: counterFulfillment === "room_delivery" ? counterRoomNumber.trim() : null,
+            fulfillment_type: "counter",
+            hostel_block: null,
+            room_number: null,
             discount_amount: 0,
             coupon_id: null,
             notes: counterNotes.trim() || null,
@@ -593,9 +599,9 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
             cart_items: counterCart,
             order_status: "pending",
             payment_status: "unpaid",
-            fulfillment_type: counterFulfillment,
-            hostel_block: counterFulfillment === "room_delivery" ? counterHostelBlock.trim() : null,
-            room_number: counterFulfillment === "room_delivery" ? counterRoomNumber.trim() : null,
+            fulfillment_type: "counter",
+            hostel_block: null,
+            room_number: null,
             discount_amount: 0,
             coupon_id: null,
             notes: counterNotes.trim() || null,
@@ -999,7 +1005,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
 
       const { data: ordersData } = await supabase
         .from("orders").select("*").eq("cafe_id", currentCafeId)
-        .order("created_at", { ascending: false }).limit(30);
+        .order("created_at", { ascending: false }).limit(500);
       if (ordersData) setOrders(ordersData as Order[]);
     }
     init();
@@ -1027,8 +1033,8 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
             if (prev.some((o) => o.id === newOrder.id)) return prev;
             return [newOrder, ...prev];
           });
-          // 🔔 Play the bell
-          if (soundEnabledRef.current) {
+          // 🔔 Play the bell only if it's already paid (e.g. Counter orders created as paid)
+          if (newOrder.payment_status === "paid" && soundEnabledRef.current) {
             play();
           }
         }
@@ -1043,9 +1049,14 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
         },
         (payload) => {
           const updated = payload.new as Order;
-          setOrders((prev) =>
-            prev.map((o) => (o.id === updated.id ? updated : o))
-          );
+          setOrders((prev) => {
+            const existing = prev.find((o) => o.id === updated.id);
+            const statusChangedToPaid = existing && existing.payment_status === "unpaid" && updated.payment_status === "paid";
+            if (statusChangedToPaid && soundEnabledRef.current) {
+              play();
+            }
+            return prev.map((o) => (o.id === updated.id ? updated : o));
+          });
         }
       )
       .subscribe();
@@ -1095,23 +1106,17 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
     await supabase.from("orders").update({ order_status: status }).eq("id", id);
   }, [supabase]);
 
-  // ── Derived state ────────────────────────────────────────────────────────────
   // Split pending orders:
-  // - rawScheduled: pending orders scheduled > 15m in the future.
-  // - rawIncoming: standard pending orders, or scheduled orders <= 15m away / already passed.
-  const rawScheduled = orders.filter((o) => 
-    o.order_status === "pending" && 
-    o.scheduled_at && 
-    (new Date(o.scheduled_at).getTime() - currentTime) > 15 * 60 * 1000
-  );
+  // - rawScheduled: scheduled orders are now combined into rawIncoming.
+  const rawScheduled: Order[] = [];
 
   const rawIncoming = orders.filter((o) => 
-    o.order_status === "pending" && 
-    (!o.scheduled_at || (new Date(o.scheduled_at).getTime() - currentTime) <= 15 * 60 * 1000)
+    o.payment_status === "paid" &&
+    o.order_status === "pending"
   );
 
-  const rawCooking = orders.filter((o) => o.order_status === "preparing");
-  const rawDone = orders.filter((o) => o.order_status === "done");
+  const rawCooking = orders.filter((o) => o.payment_status === "paid" && o.order_status === "preparing");
+  const rawDone = orders.filter((o) => o.payment_status === "paid" && o.order_status === "done");
 
   const sortOrders = (ordersList: Order[], criteria: SortOption, column: "incoming" | "cooking" | "completed") => {
     return [...ordersList].sort((a, b) => {
@@ -1143,7 +1148,18 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
 
   const incomingOrders = sortOrders(rawIncoming, sortBy, "incoming");
   const cookingOrders = sortOrders(rawCooking, sortBy, "cooking");
-  const doneOrders = sortOrders(rawDone, sortBy, "completed");
+  const sortedDoneOrders = sortOrders(rawDone, sortBy, "completed");
+
+  const doneOrders = useMemo<Order[]>(() => {
+    if (historyFilter === "all") return sortedDoneOrders;
+    const now = Date.now();
+    const days = parseInt(historyFilter, 10);
+    const msLimit = days * 24 * 60 * 60 * 1000;
+    return sortedDoneOrders.filter((o) => {
+      const orderTime = new Date(o.created_at).getTime();
+      return (now - orderTime) <= msLimit;
+    });
+  }, [sortedDoneOrders, historyFilter]);
 
   const scheduledOrders = [...rawScheduled].sort((a, b) => {
     if (!a.scheduled_at || !b.scheduled_at) return 0;
@@ -1227,41 +1243,32 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
       </header>
 
       {/* ── Stats strip / Mobile column switcher ── */}
-      <div className="no-print flex gap-3 px-4 md:px-6 py-3 lg:hidden">
-        <button
-          onClick={() => setSubTab("incoming")}
-          className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
-            subTab === "incoming"
-              ? "bg-warning text-black font-black"
-              : "bg-white text-black hover:bg-zinc-50"
-          }`}
-        >
-          <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "incoming" ? "text-black" : "text-black/60"}`}>Incoming</p>
-          <p className="font-display font-black text-xl mt-0.5">{incomingOrders.length}</p>
-        </button>
-        <button
-          onClick={() => setSubTab("cooking")}
-          className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
-            subTab === "cooking"
-              ? "bg-blue-500 text-black font-black"
-              : "bg-white text-black hover:bg-zinc-50"
-          }`}
-        >
-          <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "cooking" ? "text-black" : "text-black/60"}`}>Cooking</p>
-          <p className="font-display font-black text-xl mt-0.5">{cookingOrders.length}</p>
-        </button>
-        <button
-          onClick={() => setSubTab("completed")}
-          className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
-            subTab === "completed"
-              ? "bg-green-800 text-white font-black"
-              : "bg-white text-black hover:bg-zinc-50"
-          }`}
-        >
-          <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "completed" ? "text-white" : "text-black/60"}`}>Completed</p>
-          <p className={`font-display font-black text-xl mt-0.5 ${subTab === "completed" ? "text-white" : "text-black"}`}>{doneOrders.length}</p>
-        </button>
-      </div>
+      {tab === "orders" && (
+        <div className="no-print flex gap-3 px-4 md:px-6 py-3 lg:hidden">
+          <button
+            onClick={() => setSubTab("incoming")}
+            className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
+              subTab === "incoming"
+                ? "bg-warning text-black font-black"
+                : "bg-white text-black hover:bg-zinc-50"
+            }`}
+          >
+            <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "incoming" ? "text-black" : "text-black/60"}`}>Incoming</p>
+            <p className="font-display font-black text-xl mt-0.5">{incomingOrders.length}</p>
+          </button>
+          <button
+            onClick={() => setSubTab("cooking")}
+            className={`flex-1 border-2 border-black rounded-none p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer text-left transition-all ${
+              subTab === "cooking"
+                ? "bg-blue-500 text-black font-black"
+                : "bg-white text-black hover:bg-zinc-50"
+            }`}
+          >
+            <p className={`text-[10px] uppercase font-bold tracking-wider ${subTab === "cooking" ? "text-black" : "text-black/60"}`}>Cooking</p>
+            <p className="font-display font-black text-xl mt-0.5">{cookingOrders.length}</p>
+          </button>
+        </div>
+      )}
 
       {/* ── Tabs ── */}
       <TabBar active={tab} onChange={setTab} pendingCount={incomingOrders.length} />
@@ -1314,7 +1321,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
 
               {/* Column 1: Incoming */}
               <div className={`space-y-4 ${subTab === "incoming" ? "block" : "hidden lg:block"}`}>
@@ -1325,7 +1332,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                   </span>
                 </div>
                 {incomingOrders.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {incomingOrders.map((order) => (
                       <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} onAcceptAndCook={handleAcceptAndCook} />
                     ))}
@@ -1347,7 +1354,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                   </span>
                 </div>
                 {cookingOrders.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {cookingOrders.map((order) => (
                       <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
                     ))}
@@ -1360,30 +1367,65 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                 )}
               </div>
 
-              {/* Column 3: Completed */}
-              <div className={`space-y-4 ${subTab === "completed" ? "block" : "hidden lg:block"}`}>
-                <div className="flex justify-between items-center mb-4 px-1 pb-2 border-b-4 border-black">
-                  <p className="text-black/65 font-black text-sm uppercase tracking-widest">Completed</p>
-                  <span className="text-white bg-black font-display font-black text-base px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    {doneOrders.length}
-                  </span>
-                </div>
-                {doneOrders.length > 0 ? (
-                  <div className="space-y-4">
-                    {doneOrders.slice(0, 8).map((order) => (
-                      <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center border-4 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                    <span className="text-4xl">💤</span>
-                    <p className="text-black/60 font-black uppercase tracking-tight mt-3 text-xs">No orders completed</p>
-                  </div>
-                )}
-              </div>
-
             </div>
           </>
+        )}
+        {tab === "history" && (
+          <div className="space-y-6 text-black">
+            {/* Header Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-4 border-black">
+              <div>
+                <button
+                  onClick={() => setTab("orders")}
+                  className="mb-2 text-black font-black text-xs uppercase tracking-tight flex items-center gap-1 hover:text-black/70 cursor-pointer"
+                >
+                  ← Back to Active Orders
+                </button>
+                <h2 className="font-display font-black text-xl uppercase tracking-tight flex items-center gap-2">
+                  📜 Order History
+                </h2>
+                <p className="text-black/60 text-xs font-bold mt-1">
+                  View all completed orders for this cafe.
+                </p>
+              </div>
+              <div className="text-white bg-black font-display font-black text-base px-2.5 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] w-fit">
+                Total Completed: {doneOrders.length}
+              </div>
+            </div>
+
+            {/* Filter controls */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2 border-b-2 border-black border-dashed">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black uppercase text-black/60">Time Range:</span>
+                <div className="flex border-2 border-black rounded-none overflow-hidden bg-white shadow-[2px_2px_0px_0px_#000]">
+                  {(["all", "1", "7", "30"] as const).map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => setHistoryFilter(opt)}
+                      className={`px-3 py-1.5 font-display font-black text-xs border-r-2 border-black last:border-r-0 uppercase transition-all cursor-pointer ${
+                        historyFilter === opt ? "bg-warning text-black" : "bg-white text-black/60 hover:bg-zinc-50"
+                      }`}
+                    >
+                      {opt === "all" ? "All Time" : opt === "1" ? "1 Day" : `${opt} Days`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {doneOrders.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+                {doneOrders.map((order) => (
+                  <OrderCard key={order.id} order={order} onStatusChange={handleStatusChange} />
+                ))}
+              </div>
+            ) : (
+              <div className="py-20 text-center border-4 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-5xl">💤</span>
+                <p className="text-black/60 font-black uppercase tracking-tight mt-3 text-xs">No completed orders found</p>
+              </div>
+            )}
+          </div>
         )}
         {tab === "menu" && (
           <div className="text-black">
@@ -1875,7 +1917,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
             <div className="flex items-center justify-between pb-3 border-b-4 border-black mb-4">
               <div>
                 <h2 className="font-display font-black text-xl uppercase tracking-tight">Counter Order Panel</h2>
-                <p className="text-[10px] font-black uppercase text-black/60 tracking-wider">Take walk-in and room delivery orders directly</p>
+                <p className="text-[10px] font-black uppercase text-black/60 tracking-wider">Take walk-in orders directly</p>
               </div>
               <button 
                 onClick={closeCounterModal}
@@ -2063,61 +2105,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                   </div>
                 </div>
 
-                {/* Fulfillment Option */}
-                <div className="mt-2.5 border-t border-dashed border-black/30 pt-2.5 shrink-0">
-                  <label className="block text-[9px] font-black uppercase text-gray-500 tracking-wider mb-1">Fulfillment Mode</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setCounterFulfillment("counter")}
-                      className={`py-1.5 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer rounded-none ${
-                        counterFulfillment === "counter"
-                          ? "bg-warning text-black shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
-                          : "bg-white text-black hover:bg-zinc-50"
-                      }`}
-                    >
-                      🏃 Counter Pick Up
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCounterFulfillment("room_delivery")}
-                      className={`py-1.5 text-xs font-black uppercase border-2 border-black tracking-wider transition-all cursor-pointer rounded-none ${
-                        counterFulfillment === "room_delivery"
-                          ? "bg-accent text-white shadow-[2px_2px_0px_0px_#000] translate-x-[-1px] translate-y-[-1px]"
-                          : "bg-white text-black hover:bg-zinc-50"
-                      }`}
-                    >
-                      🚪 Room Delivery
-                    </button>
-                  </div>
 
-                  {counterFulfillment === "room_delivery" && (
-                    <div className="grid grid-cols-2 gap-3 mt-2 p-2 bg-zinc-50 border-2 border-black shrink-0">
-                      <div>
-                        <label className="block text-[9px] font-black uppercase text-black mb-1">Hostel Block</label>
-                        <input
-                          type="text"
-                          required
-                          value={counterHostelBlock}
-                          onChange={(e) => setCounterHostelBlock(e.target.value)}
-                          placeholder="e.g. A"
-                          className="w-full min-h-8 px-2 border border-black bg-white text-black font-bold focus:outline-none text-xs rounded-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-black uppercase text-black mb-1">Room Number</label>
-                        <input
-                          type="text"
-                          required
-                          value={counterRoomNumber}
-                          onChange={(e) => setCounterRoomNumber(e.target.value)}
-                          placeholder="e.g. 104"
-                          className="w-full min-h-8 px-2 border border-black bg-white text-black font-bold focus:outline-none text-xs rounded-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
 
                 {/* Order Notes / Special Instructions */}
                 <div className="mt-2.5 border-t border-dashed border-black/30 pt-2.5 shrink-0">
@@ -2163,7 +2151,7 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
                 {/* Confirm & Cook Button */}
                 <button
                   onClick={handleConfirmAndCook}
-                  disabled={counterCart.length === 0 || counterSubmitting || (counterFulfillment === "room_delivery" && (!counterHostelBlock.trim() || !counterRoomNumber.trim()))}
+                  disabled={counterCart.length === 0 || counterSubmitting}
                   className="w-full min-h-11 bg-black text-white font-display font-black uppercase text-xs border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer mt-3.5 shrink-0 rounded-none"
                 >
                   {counterSubmitting ? (
