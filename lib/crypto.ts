@@ -91,26 +91,40 @@ export async function encrypt(text: string): Promise<string> {
  * Decrypts a base64-encoded AES-GCM-256 ciphertext string
  */
 export async function decrypt(encryptedBase64: string): Promise<string> {
-  const key = await importKey();
-  const combined = base64ToUint8Array(encryptedBase64);
+  try {
+    const key = await importKey();
+    
+    let combined: Uint8Array;
+    try {
+      combined = base64ToUint8Array(encryptedBase64);
+    } catch {
+      // If it fails to parse as base64, assume it's raw/plain text and return it directly
+      return encryptedBase64;
+    }
 
-  if (combined.length < IV_LENGTH) {
-    throw new Error("Invalid encrypted text length");
+    // Minimum length for a valid AES-GCM ciphertext:
+    // IV (12 bytes) + AES-GCM tag (16 bytes) + plaintext (>= 0 bytes) = 28 bytes
+    if (combined.length < IV_LENGTH + 16) {
+      return encryptedBase64;
+    }
+
+    // Split IV and Ciphertext
+    const iv = combined.slice(0, IV_LENGTH);
+    const ciphertext = combined.slice(IV_LENGTH);
+
+    const decryptedBuffer = await crypto.subtle.decrypt(
+      {
+        name: "AES-GCM",
+        iv: iv as any,
+      },
+      key,
+      ciphertext as any
+    );
+
+    const decoder = new TextDecoder();
+    return decoder.decode(decryptedBuffer);
+  } catch (error) {
+    console.warn("Failed to decrypt secret, falling back to raw value:", error);
+    return encryptedBase64;
   }
-
-  // Split IV and Ciphertext
-  const iv = combined.slice(0, IV_LENGTH);
-  const ciphertext = combined.slice(IV_LENGTH);
-
-  const decryptedBuffer = await crypto.subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv: iv as any,
-    },
-    key,
-    ciphertext as any
-  );
-
-  const decoder = new TextDecoder();
-  return decoder.decode(decryptedBuffer);
 }
