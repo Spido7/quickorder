@@ -2170,6 +2170,63 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
         </div>
       )}
 
+      {/* Counter Variant Selection Modal */}
+      {counterVariantModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm no-print">
+          <div className="bg-white border-4 border-black p-6 w-full max-w-sm shadow-[8px_8px_0px_0px_#000] text-black space-y-4">
+            <div className="border-b-2 border-black pb-2 flex justify-between items-center">
+              <div>
+                <h3 className="font-display font-black text-lg uppercase tracking-tight">
+                  Choose Portion
+                </h3>
+                <p className="text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                  {counterVariantModalItem.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCounterVariantModalItem(null);
+                  setCounterSelectedVariant(null);
+                }}
+                className="text-black font-black text-xl hover:text-black/60 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {counterVariantModalItem.variants?.map((v) => (
+                <button
+                  type="button"
+                  key={v.name}
+                  onClick={() => setCounterSelectedVariant(v)}
+                  className={`w-full p-3 border-2 border-black font-bold text-xs uppercase flex items-center justify-between transition-all cursor-pointer rounded-none ${
+                    counterSelectedVariant?.name === v.name
+                      ? "bg-warning text-black shadow-[3px_3px_0px_0px_#000] -translate-x-[1px] -translate-y-[1px]"
+                      : "bg-white text-black hover:bg-zinc-100"
+                  }`}
+                >
+                  <span>{v.name}</span>
+                  <span className="font-black">₹{v.price}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleCounterVariantAdd}
+                disabled={!counterSelectedVariant}
+                className="w-full min-h-11 bg-black text-white font-display font-black uppercase text-xs border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40 disabled:cursor-not-allowed hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center cursor-pointer"
+              >
+                Add to Cart 🛒
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Razorpay Counter Mock Simulator Modal */}
       {showCounterMockPayment && counterMockPaymentData && counterMockOrderData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm no-print">
