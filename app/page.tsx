@@ -759,7 +759,10 @@ export default function LandingPage() {
               <a href="#features" className="hover:text-accent transition-colors">Features</a>
               <a href="#demo" className="hover:text-accent transition-colors">Live Demo</a>
               <a href="#pricing" className="hover:text-accent transition-colors">Pricing</a>
-              <a href="#contact" className="hover:text-accent transition-colors">Contact</a>
+              <Link href="/terms" className="hover:text-accent transition-colors">Terms &amp; Conditions</Link>
+              <Link href="/privacy" className="hover:text-accent transition-colors">Privacy Policy</Link>
+              <Link href="/refund-policy" className="hover:text-accent transition-colors">Refund &amp; Cancellation Policy</Link>
+              <Link href="/contact" className="hover:text-accent transition-colors">Contact &amp; Grievance Info</Link>
             </div>
 
             <div className="text-left md:text-right space-y-1">

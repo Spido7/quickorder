@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, memo, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import QRCode from "react-qr-code";
 import { createClient } from "@/lib/supabase/client";
 import type { MenuItem, Order } from "@/lib/types";
@@ -2214,6 +2215,27 @@ export default function DashboardClient({ cafe: initialCafe, hasMultipleCafes }:
           </div>
         </div>
       )}
+
+      {/* Footer Policies */}
+      <footer className="no-print w-full py-6 px-4 border-t-2 border-black bg-white text-center mt-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-7xl mx-auto text-xs font-bold text-gray-500 uppercase tracking-wider">
+          <p>© {new Date().getFullYear()} QuickOrder Canteen Panel</p>
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <Link href={cafeId ? `/terms?cafeId=${cafeId}` : "/terms"} className="hover:text-accent text-black transition-colors font-black">
+              Terms &amp; Conditions
+            </Link>
+            <Link href={cafeId ? `/privacy?cafeId=${cafeId}` : "/privacy"} className="hover:text-accent text-black transition-colors font-black">
+              Privacy Policy
+            </Link>
+            <Link href={cafeId ? `/refund-policy?cafeId=${cafeId}` : "/refund-policy"} className="hover:text-accent text-black transition-colors font-black">
+              Refund &amp; Cancellation Policy
+            </Link>
+            <Link href={cafeId ? `/contact?cafeId=${cafeId}` : "/contact"} className="hover:text-accent text-black transition-colors font-black">
+              Contact &amp; Grievance Info
+            </Link>
+          </div>
+        </div>
+      </footer>
 
       {/* Embedded print stylesheet rules */}
       <style>{`
