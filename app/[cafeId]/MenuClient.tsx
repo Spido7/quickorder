@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import type { Cafe, CartItem, Order } from "@/lib/types";
 import { memo } from "react";
+import FooterPolicies from "@/components/FooterPolicies";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface PublicMenuItem {
@@ -1343,6 +1344,8 @@ export default function MenuClient({ cafe, items, categories, initialTable }: Pr
           </div>
         )}
       </main>
+
+      <FooterPolicies cafeId={cafe.id} />
 
       {/* ── Cart FAB ── */}
       <div
